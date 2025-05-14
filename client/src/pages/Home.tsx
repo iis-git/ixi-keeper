@@ -1,8 +1,8 @@
-import React from 'react';
+import { FC } from 'react';
 import { Link } from 'react-router-dom';
 import '../styles/Home.css';
 
-function Home() {
+export const Home: FC = () => {
   return (
     <div className="home">
       <h1>Добро пожаловать в Ixi-Keeper</h1>
@@ -20,5 +20,3 @@ function Home() {
     </div>
   );
 }
-
-export default Home;

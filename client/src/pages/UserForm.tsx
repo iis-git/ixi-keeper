@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/UserForm.css';
+import { User } from '../types';
 
-function UserForm() {
-  const { id } = useParams();
+const UserForm: React.FC = () => {
+  const { id } = useParams<Record<string, string | undefined>>();
   const navigate = useNavigate();
   const isEditMode = id !== undefined;
   
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<User>({
     name: '',
     phone: '',
     totalOrdersAmount: 0,
@@ -16,38 +17,39 @@ function UserForm() {
     averageCheck: 0
   });
   
-  const [loading, setLoading] = useState(isEditMode);
-  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState<boolean>(isEditMode);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (isEditMode) {
+    if (isEditMode && id) {
       fetchUser();
     }
   }, [id]);
 
-  const fetchUser = async () => {
+  const fetchUser = async (): Promise<void> => {
     try {
       console.log(`Отправка запроса на получение пользователя с ID ${id}...`);
-      const response = await axios.get(`http://localhost:3000/api/users/${id}`);
+      const response = await axios.get<User>(`http://localhost:3000/api/users/${id}`);
       console.log('Получен ответ:', response);
       setFormData(response.data);
       setLoading(false);
     } catch (err) {
       console.error('Ошибка при получении данных пользователя:', err);
+      const error = err as Error;
       console.error('Детали ошибки:', {
-        message: err.message,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        url: err.config?.url,
-        method: err.config?.method
+        message: error.message,
+        status: axios.isAxiosError(err) ? err.response?.status : undefined,
+        statusText: axios.isAxiosError(err) ? err.response?.statusText : undefined,
+        data: axios.isAxiosError(err) ? err.response?.data : undefined,
+        url: axios.isAxiosError(err) ? err.config?.url : undefined,
+        method: axios.isAxiosError(err) ? err.config?.method : undefined
       });
-      setError(`Не удалось загрузить данные пользователя. Ошибка: ${err.message}`);
+      setError(`Не удалось загрузить данные пользователя. Ошибка: ${error.message}`);
       setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
@@ -55,33 +57,34 @@ function UserForm() {
     });
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     
     try {
       console.log('Отправляемые данные:', formData);
-      if (isEditMode) {
+      if (isEditMode && id) {
         console.log(`Отправка запроса на обновление пользователя с ID ${id}...`);
-        const response = await axios.put(`http://localhost:3000/api/users/${id}`, formData);
+        const response = await axios.put<User>(`http://localhost:3000/api/users/${id}`, formData);
         console.log('Получен ответ на обновление:', response);
       } else {
         console.log('Отправка запроса на создание нового пользователя...');
-        const response = await axios.post('http://localhost:3000/api/users', formData);
+        const response = await axios.post<User>('http://localhost:3000/api/users', formData);
         console.log('Получен ответ на создание:', response);
       }
       navigate('/users');
     } catch (err) {
       console.error('Ошибка при сохранении пользователя:', err);
+      const error = err as Error;
       console.error('Детали ошибки:', {
-        message: err.message,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data,
-        url: err.config?.url,
-        method: err.config?.method,
+        message: error.message,
+        status: axios.isAxiosError(err) ? err.response?.status : undefined,
+        statusText: axios.isAxiosError(err) ? err.response?.statusText : undefined,
+        data: axios.isAxiosError(err) ? err.response?.data : undefined,
+        url: axios.isAxiosError(err) ? err.config?.url : undefined,
+        method: axios.isAxiosError(err) ? err.config?.method : undefined,
         requestData: formData
       });
-      setError(`Не удалось сохранить пользователя. Ошибка: ${err.message}`);
+      setError(`Не удалось сохранить пользователя. Ошибка: ${error.message}`);
     }
   };
 

@@ -2,37 +2,39 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
 import '../styles/Users.css';
+import { User } from '../types';
 
-function Users() {
-  const [users, setUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+const Users: React.FC = () => {
+  const [users, setUsers] = useState<User[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchUsers();
   }, []);
 
-  const fetchUsers = async () => {
+  const fetchUsers = async (): Promise<void> => {
     try {
       console.log('Отправка запроса на получение пользователей...');
-      const response = await axios.get('http://localhost:3000/api/users');
+      const response = await axios.get<User[]>('http://localhost:3000/api/users');
       console.log('Получен ответ:', response);
       setUsers(response.data);
       setLoading(false);
     } catch (err) {
       console.error('Ошибка при получении данных:', err);
+      const error = err as Error;
       console.error('Детали ошибки:', {
-        message: err.message,
-        status: err.response?.status,
-        statusText: err.response?.statusText,
-        data: err.response?.data
+        message: error.message,
+        status: axios.isAxiosError(err) ? err.response?.status : undefined,
+        statusText: axios.isAxiosError(err) ? err.response?.statusText : undefined,
+        data: axios.isAxiosError(err) ? err.response?.data : undefined
       });
-      setError(`Не удалось загрузить пользователей. Ошибка: ${err.message}`);
+      setError(`Не удалось загрузить пользователей. Ошибка: ${error.message}`);
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: number): Promise<void> => {
     if (window.confirm('Вы уверены, что хотите удалить этого пользователя?')) {
       try {
         console.log(`Отправка запроса на удаление пользователя с ID ${id}...`);
@@ -41,13 +43,14 @@ function Users() {
         fetchUsers(); // Обновляем список после удаления
       } catch (err) {
         console.error('Ошибка при удалении пользователя:', err);
+        const error = err as Error;
         console.error('Детали ошибки:', {
-          message: err.message,
-          status: err.response?.status,
-          statusText: err.response?.statusText,
-          data: err.response?.data
+          message: error.message,
+          status: axios.isAxiosError(err) ? err.response?.status : undefined,
+          statusText: axios.isAxiosError(err) ? err.response?.statusText : undefined,
+          data: axios.isAxiosError(err) ? err.response?.data : undefined
         });
-        setError(`Не удалось удалить пользователя. Ошибка: ${err.message}`);
+        setError(`Не удалось удалить пользователя. Ошибка: ${error.message}`);
       }
     }
   };

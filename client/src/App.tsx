@@ -1,11 +1,11 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import Home from './pages/Home';
+import { Home } from './pages/Home';
 import Users from './pages/Users';
 import UserForm from './pages/UserForm';
 import './styles/App.css';
 
-function App() {
+const App: React.FC = () => {
   return (
     <Router>
       <div className="app">
