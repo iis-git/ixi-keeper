@@ -13,7 +13,7 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
   const navigate = useNavigate();
   const isEditMode = userId !== undefined;
   
-  const [formData, setFormData] = useState<User>(initialData || {
+  const [formData, setFormData] = useState<Partial<User>>(initialData || {
     name: '',
     phone: '',
     totalOrdersAmount: 0,

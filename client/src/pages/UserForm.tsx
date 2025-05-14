@@ -29,7 +29,7 @@ const UserForm: React.FC = () => {
   const fetchUser = async (): Promise<void> => {
     try {
       console.log(`Отправка запроса на получение пользователя с ID ${id}...`);
-      const response = await axios.get<User>(`http://localhost:3000/api/users/${id}`);
+      const response = await axios.get<User>(`http://localhost:3020/api/users/${id}`);
       console.log('Получен ответ:', response);
       setFormData(response.data);
       setLoading(false);
@@ -64,11 +64,11 @@ const UserForm: React.FC = () => {
       console.log('Отправляемые данные:', formData);
       if (isEditMode && id) {
         console.log(`Отправка запроса на обновление пользователя с ID ${id}...`);
-        const response = await axios.put<User>(`http://localhost:3000/api/users/${id}`, formData);
+        const response = await axios.put<User>(`http://localhost:3020/api/users/${id}`, formData);
         console.log('Получен ответ на обновление:', response);
       } else {
         console.log('Отправка запроса на создание нового пользователя...');
-        const response = await axios.post<User>('http://localhost:3000/api/users', formData);
+        const response = await axios.post<User>('http://localhost:3020/api/users', formData);
         console.log('Получен ответ на создание:', response);
       }
       navigate('/users');

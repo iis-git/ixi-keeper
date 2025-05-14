@@ -7,7 +7,7 @@ import { fileURLToPath } from 'url';
 export default defineConfig({
   plugins: [react()],
   server: {
-    port: 3001, // Используем порт 3001, чтобы не конфликтовать с сервером API
+    port: 3021, // Фиксированный порт для клиентского приложения
     open: true
   },
   resolve: {

@@ -64,18 +64,18 @@ export const UserTable: FC = () => {
             </tr>
           </thead>
           <tbody>
-            {users.map((user, index) => (
-              <tr key={index}>
-                <td>{index}</td>
+            {users.map((user) => (
+              <tr key={user.id}>
+                <td>{user.id}</td>
                 <td>{user.name}</td>
                 <td>{user.phone}</td>
                 <td>{user.totalOrdersAmount}</td>
                 <td>{user.visitCount}</td>
                 <td>{user.averageCheck}</td>
                 <td className="actions">
-                  <Link to={`/users/edit/${index}`} className="edit-button">Изменить</Link>
+                  <Link to={`/users/edit/${user.id}`} className="edit-button">Изменить</Link>
                   <DeleteUserButton 
-                    userId={index} 
+                    userId={user.id} 
                     onSuccess={handleDeleteSuccess} 
                     onError={handleDeleteError} 
                   />

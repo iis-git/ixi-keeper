@@ -1,10 +1,12 @@
 export interface User {
-  id?: number;
+  id: number;
   name: string;
   phone: string;
   totalOrdersAmount: number;
   visitCount: number;
   averageCheck: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ApiResponse<T> {

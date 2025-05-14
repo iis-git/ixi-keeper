@@ -16,7 +16,7 @@ const Users: React.FC = () => {
   const fetchUsers = async (): Promise<void> => {
     try {
       console.log('Отправка запроса на получение пользователей...');
-      const response = await axios.get<User[]>('http://localhost:3000/api/users');
+      const response = await axios.get<User[]>('http://localhost:3020/api/users');
       console.log('Получен ответ:', response);
       setUsers(response.data);
       setLoading(false);
@@ -38,7 +38,7 @@ const Users: React.FC = () => {
     if (window.confirm('Вы уверены, что хотите удалить этого пользователя?')) {
       try {
         console.log(`Отправка запроса на удаление пользователя с ID ${id}...`);
-        const response = await axios.delete(`http://localhost:3000/api/users/${id}`);
+        const response = await axios.delete(`http://localhost:3020/api/users/${id}`);
         console.log('Ответ на удаление:', response);
         fetchUsers(); // Обновляем список после удаления
       } catch (err) {
