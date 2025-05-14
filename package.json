@@ -1,26 +1,17 @@
 {
   "name": "ixi-keeper",
   "version": "1.0.0",
-  "description": "A simple REST API server for managing database tables",
-  "main": "dist/server.js",
+  "description": "Ixi-Keeper - приложение для управления пользователями, товарами и заказами",
   "scripts": {
-    "start": "node dist/server.js",
-    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/server.ts",
-    "build": "tsc"
-  },
-  "dependencies": {
-    "body-parser": "^1.19.0",
-    "dotenv": "^16.5.0",
-    "express": "^4.17.1",
-    "pg": "^8.16.0",
-    "pg-hstore": "^2.3.4",
-    "sequelize": "^6.37.7"
+    "start": "concurrently \"npm run start:server\" \"npm run start:client\"",
+    "dev": "concurrently \"npm run dev:server\" \"npm run dev:client\"",
+    "start:server": "cd server && npm start",
+    "dev:server": "cd server && npm run dev",
+    "start:client": "cd client && npm run preview",
+    "dev:client": "cd client && npm run dev",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install"
   },
   "devDependencies": {
-    "@types/express": "^4.17.13",
-    "@types/node": "^16.11.12",
-    "nodemon": "^2.0.15",
-    "ts-node": "^10.4.0",
-    "typescript": "^4.5.4"
+    "concurrently": "^8.2.2"
   }
 }

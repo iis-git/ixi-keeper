@@ -1,25 +1,45 @@
-# Ixi-Keeper REST API
+# Ixi-Keeper
 
-A simple REST API server built with Node.js and Express for managing multiple database tables.
+Приложение для управления пользователями, товарами и заказами с использованием React, Express и PostgreSQL.
 
-## Setup
-1. **Install Dependencies:**
-   Run `npm install` to install all required packages.
+## Структура проекта
 
-2. **Start the Server:**
-   - For development: `npm run dev` (uses Nodemon for auto-restart on file changes)
-   - For production: `npm start`
+Проект разделен на две основные части:
 
-## API Endpoints
-The API supports CRUD operations for the following tables: `users`, `products`, `orders`.
+- **client** - клиентская часть на React/TypeScript с архитектурой Feature-Sliced Design (FSD)
+- **server** - серверная часть на Node.js/Express с интеграцией PostgreSQL
 
-### For each table:
-- **Create**: `POST /api/{table}` - Add a new item
-- **Read All**: `GET /api/{table}` - Get all items
-- **Read One**: `GET /api/{table}/{id}` - Get a specific item by ID
-- **Update**: `PUT /api/{table}/{id}` - Update a specific item by ID
-- **Delete**: `DELETE /api/{table}/{id}` - Delete a specific item by ID
+## Установка
 
-## Notes
-- This setup uses an in-memory database for simplicity. In a production environment, replace it with a proper database solution like MongoDB, PostgreSQL, etc.
-- Ensure you have Node.js installed on your system to run this application.
+1. **Установите зависимости:**
+   ```
+   npm run install:all
+   ```
+   Эта команда установит зависимости для корневого проекта, клиента и сервера.
+
+2. **Настройте базу данных PostgreSQL:**
+   - Убедитесь, что у вас установлен Docker
+   - Запустите PostgreSQL в Docker:
+     ```
+     docker run --name ixi-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=ixi_keeper -p 5432:5432 -d postgres
+     ```
+
+3. **Запустите приложение:**
+   - Для разработки: `npm run dev` (запустит клиент и сервер одновременно)
+   - Для продакшена: `npm start`
+
+## API Эндпоинты
+
+API поддерживает CRUD операции для следующих таблиц: `users`, `products`, `orders`.
+
+### Для каждой таблицы:
+- **Создание**: `POST /api/{table}` - Добавить новый элемент
+- **Чтение всех**: `GET /api/{table}` - Получить все элементы
+- **Чтение одного**: `GET /api/{table}/{id}` - Получить конкретный элемент по ID
+- **Обновление**: `PUT /api/{table}/{id}` - Обновить конкретный элемент по ID
+- **Удаление**: `DELETE /api/{table}/{id}` - Удалить конкретный элемент по ID
+
+## Порты
+
+- **Сервер API**: 3020
+- **Клиент**: 3021 (по умолчанию, может измениться, если порт занят)
