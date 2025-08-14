@@ -1,0 +1,270 @@
+.categoriesContainer {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.categoriesHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.categoriesHeader h1 {
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 15px;
+}
+
+.addButton, .backButton {
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.addButton {
+  background-color: #646cff;
+  color: white;
+}
+
+.addButton:hover {
+  background-color: #535bf2;
+}
+
+.backButton {
+  background-color: #f1f1f1;
+  color: #333;
+}
+
+.backButton:hover {
+  background-color: #e1e1e1;
+}
+
+.categoriesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.categoryCard {
+  background-color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.categoryCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.categoryHeader {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.categoryColor {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.categoryInfo h3 {
+  margin: 0 0 5px 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.status {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status.active {
+  background-color: #e8f5e8;
+  color: #4caf50;
+}
+
+.status.inactive {
+  background-color: #ffebee;
+  color: #f44336;
+}
+
+.categoryDescription {
+  color: #666;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.categoryStats {
+  margin-bottom: 20px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 6px;
+}
+
+.productCount {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.categoryActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.toggleButton, .editButton, .deleteButton {
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+}
+
+.toggleButton.activate {
+  background-color: #4caf50;
+  color: white;
+}
+
+.toggleButton.activate:hover {
+  background-color: #388e3c;
+}
+
+.toggleButton.deactivate {
+  background-color: #ff9800;
+  color: white;
+}
+
+.toggleButton.deactivate:hover {
+  background-color: #f57c00;
+}
+
+.editButton {
+  background-color: #2196f3;
+  color: white;
+}
+
+.editButton:hover {
+  background-color: #1976d2;
+}
+
+.deleteButton {
+  background-color: #f44336;
+  color: white;
+}
+
+.deleteButton:hover {
+  background-color: #d32f2f;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 40px 0;
+  color: #666;
+}
+
+.error {
+  color: #f44336;
+  background-color: #ffebee;
+  border-radius: 4px;
+  margin: 20px 0;
+}
+
+.noCategories {
+  text-align: center;
+  padding: 60px 20px;
+  background-color: #f9f9f9;
+  border-radius: 12px;
+  border: 2px dashed #ddd;
+}
+
+.noCategories p {
+  color: #666;
+  margin-bottom: 20px;
+  font-size: 1.1rem;
+}
+
+.createFirstButton {
+  background-color: #646cff;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.createFirstButton:hover {
+  background-color: #535bf2;
+}
+
+@media (prefers-color-scheme: dark) {
+  .categoryCard {
+    background-color: #2a2a2a;
+  }
+  
+  .categoryInfo h3 {
+    color: #f1f1f1;
+  }
+  
+  .categoryDescription {
+    color: #d1d1d1;
+  }
+  
+  .categoryStats {
+    background-color: #333;
+  }
+  
+  .productCount {
+    color: #ccc;
+  }
+  
+  .backButton {
+    background-color: #333;
+    color: #f1f1f1;
+  }
+  
+  .backButton:hover {
+    background-color: #444;
+  }
+  
+  .loading {
+    color: #ccc;
+  }
+  
+  .error {
+    background-color: #3d1a1a;
+    color: #ff6b6b;
+  }
+  
+  .noCategories {
+    background-color: #333;
+    border-color: #555;
+  }
+  
+  .noCategories p {
+    color: #ccc;
+  }
+}

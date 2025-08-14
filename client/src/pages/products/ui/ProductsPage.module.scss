@@ -1,0 +1,265 @@
+.productsContainer {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.productsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+.productsHeader h1 {
+  margin: 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 15px;
+}
+
+.addButton, .categoriesButton {
+  background-color: #646cff;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.addButton:hover, .categoriesButton:hover {
+  background-color: #535bf2;
+}
+
+.categoriesButton {
+  background-color: #4caf50;
+}
+
+.categoriesButton:hover {
+  background-color: #388e3c;
+}
+
+.categoryFilter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 30px;
+  padding: 20px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+}
+
+.categoryFilterButton {
+  padding: 8px 16px;
+  border: 2px solid transparent;
+  border-radius: 20px;
+  background-color: #e0e0e0;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+.categoryFilterButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.categoryFilterButton.active {
+  border-color: #646cff;
+  box-shadow: 0 0 0 2px rgba(100, 108, 255, 0.2);
+}
+
+.productsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.productCard {
+  background-color: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+}
+
+.productCard:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.productHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 15px;
+}
+
+.productHeader h3 {
+  margin: 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.categoryBadge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.productDescription {
+  color: #666;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.productInfo {
+  margin-bottom: 20px;
+}
+
+.priceInfo {
+  margin-bottom: 10px;
+}
+
+.price {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #646cff;
+}
+
+.stockInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.stock, .unitSize {
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.stock {
+  font-weight: 500;
+}
+
+.productActions {
+  display: flex;
+  gap: 10px;
+}
+
+.editButton {
+  background-color: #4caf50;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+  text-decoration: none;
+  display: inline-block;
+  flex: 1;
+  text-align: center;
+}
+
+.editButton:hover {
+  background-color: #388e3c;
+}
+
+.ingredientsButton {
+  background-color: #ff9800;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  flex: 1;
+}
+
+.ingredientsButton:hover {
+  background-color: #f57c00;
+}
+
+.deleteButton {
+  background-color: #f44336;
+  color: white;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  flex: 1;
+}
+
+.deleteButton:hover {
+  background-color: #d32f2f;
+}
+
+.compositeLabel {
+  background-color: #ff9800;
+  color: white;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 8px;
+}
+
+.loading, .error, .noProducts {
+  text-align: center;
+  padding: 40px 0;
+  color: #666;
+}
+
+.error {
+  color: #f44336;
+  background-color: #ffebee;
+  border-radius: 4px;
+  margin: 20px 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .productCard {
+    background-color: #2a2a2a;
+  }
+  
+  .productHeader h3 {
+    color: #f1f1f1;
+  }
+  
+  .productDescription {
+    color: #d1d1d1;
+  }
+  
+  .stock, .unitSize {
+    color: #ccc;
+  }
+  
+  .categoryFilter {
+    background-color: #333;
+  }
+  
+  .categoryFilterButton {
+    background-color: #444;
+    color: #f1f1f1;
+  }
+  
+  .loading, .noProducts {
+    color: #ccc;
+  }
+  
+  .error {
+    background-color: #3d1a1a;
+    color: #ff6b6b;
+  }
+}

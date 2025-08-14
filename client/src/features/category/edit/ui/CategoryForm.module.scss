@@ -1,0 +1,285 @@
+.categoryFormContainer {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.categoryFormContainer h1 {
+  margin-bottom: 30px;
+  text-align: center;
+  color: #333;
+}
+
+.categoryForm {
+  background-color: #f9f9f9;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.formGroup {
+  margin-bottom: 25px;
+}
+
+.formGroup label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 500;
+  color: #333;
+}
+
+.formGroup input,
+.formGroup textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 1rem;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus {
+  border-color: #646cff;
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.1);
+}
+
+.formGroup textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.colorPicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.colorOption {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.colorOption:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+.colorOption.selected {
+  border-color: #333;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #333;
+}
+
+.customColorGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.customColorGroup label {
+  margin-bottom: 0 !important;
+  font-size: 0.9rem;
+}
+
+.customColorInput {
+  width: 50px !important;
+  height: 40px;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.colorPreview {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.colorPreview span {
+  font-weight: 500;
+  color: #666;
+}
+
+.previewBadge {
+  padding: 8px 16px;
+  border-radius: 20px;
+  color: white;
+  font-weight: 500;
+  font-size: 0.9rem;
+  min-width: 120px;
+  text-align: center;
+}
+
+.checkboxLabel {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  margin-bottom: 0 !important;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: auto !important;
+  margin: 0;
+}
+
+.formActions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+  gap: 15px;
+}
+
+.submitButton {
+  background-color: #646cff;
+  color: white;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.3s;
+  flex: 1;
+}
+
+.submitButton:hover {
+  background-color: #535bf2;
+}
+
+.cancelButton {
+  background-color: #f1f1f1;
+  color: #333;
+  padding: 12px 24px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: background-color 0.3s;
+  flex: 1;
+}
+
+.cancelButton:hover {
+  background-color: #e1e1e1;
+}
+
+.loading {
+  text-align: center;
+  padding: 40px;
+  font-size: 1.1rem;
+  color: #666;
+}
+
+.error {
+  color: #f44336;
+  text-align: center;
+  padding: 20px;
+  background-color: #ffebee;
+  border-radius: 8px;
+  margin: 20px 0;
+}
+
+/* Адаптивность */
+@media (max-width: 768px) {
+  .categoryFormContainer {
+    padding: 15px;
+  }
+  
+  .categoryForm {
+    padding: 20px;
+  }
+  
+  .formActions {
+    flex-direction: column;
+  }
+  
+  .colorPicker {
+    justify-content: center;
+  }
+  
+  .customColorGroup {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .colorPreview {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+}
+
+/* Темная тема */
+@media (prefers-color-scheme: dark) {
+  .categoryFormContainer h1 {
+    color: #f1f1f1;
+  }
+  
+  .categoryForm {
+    background-color: #2a2a2a;
+  }
+  
+  .formGroup label {
+    color: #f1f1f1;
+  }
+  
+  .formGroup input,
+  .formGroup textarea {
+    background-color: #333;
+    border-color: #444;
+    color: #f1f1f1;
+  }
+  
+  .formGroup input:focus,
+  .formGroup textarea:focus {
+    border-color: #646cff;
+    box-shadow: 0 0 0 3px rgba(100, 108, 255, 0.2);
+  }
+  
+  .colorPreview {
+    background-color: #333;
+  }
+  
+  .colorPreview span {
+    color: #ccc;
+  }
+  
+  .colorOption.selected {
+    border-color: #f1f1f1;
+    box-shadow: 0 0 0 2px #2a2a2a, 0 0 0 4px #f1f1f1;
+  }
+  
+  .cancelButton {
+    background-color: #333;
+    color: #f1f1f1;
+  }
+  
+  .cancelButton:hover {
+    background-color: #444;
+  }
+  
+  .loading {
+    color: #ccc;
+  }
+  
+  .error {
+    background-color: #3d1a1a;
+    color: #ff6b6b;
+  }
+}

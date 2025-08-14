@@ -1,0 +1,146 @@
+.productSelectorContainer {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.header h1 {
+  margin: 0;
+  color: #333;
+}
+
+.headerActions {
+  display: flex;
+  gap: 15px;
+}
+
+.manageButton {
+  background-color: #4caf50;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.manageButton:hover {
+  background-color: #388e3c;
+}
+
+.selectedProduct {
+  background-color: #f0f8ff;
+  border: 2px solid #646cff;
+  border-radius: 12px;
+  padding: 20px;
+  margin-bottom: 30px;
+  animation: slideIn 0.3s ease-out;
+}
+
+.selectedProduct h3 {
+  margin: 0 0 15px 0;
+  color: #333;
+  font-size: 1.1rem;
+}
+
+.productInfo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.productName {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.productPrice {
+  font-size: 1.3rem;
+  font-weight: bold;
+  color: #646cff;
+}
+
+.categoryBadge {
+  padding: 4px 12px;
+  border-radius: 12px;
+  color: white;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.compositeLabel {
+  background-color: #ff9800;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.clearButton {
+  background-color: #f44336;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background-color 0.3s;
+}
+
+.clearButton:hover {
+  background-color: #d32f2f;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// Компактная версия для использования в модальных окнах
+.compact {
+  padding: 10px;
+  
+  .header {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    
+    h1 {
+      font-size: 1.3rem;
+    }
+  }
+  
+  .selectedProduct {
+    padding: 15px;
+    margin-bottom: 20px;
+  }
+}
+
+// Версия без заголовка для встраивания
+.embedded {
+  padding: 0;
+  
+  .header {
+    display: none;
+  }
+}
