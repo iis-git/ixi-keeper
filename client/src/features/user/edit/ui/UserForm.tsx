@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { User } from '../../../../entities/user/model/types';
 import { userApi } from '../../../../shared/api/user';
 import { handleApiError } from '../../../../shared/api/base';
+import styles from './UserForm.module.scss';
 
 interface UserFormProps {
   userId?: number;
@@ -67,16 +68,16 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
   };
 
   if (loading) {
-    return <div className="loading">Загрузка...</div>;
+    return <div className={styles.loading}>Загрузка...</div>;
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return <div className={styles.error}>{error}</div>;
   }
 
   return (
-    <form onSubmit={handleSubmit} className="user-form">
-      <div className="form-group">
+    <form onSubmit={handleSubmit} className={styles.userForm}>
+      <div className={styles.formGroup}>
         <label htmlFor="name">Имя</label>
         <input
           type="text"
@@ -88,7 +89,7 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
         />
       </div>
       
-      <div className="form-group">
+      <div className={styles.formGroup}>
         <label htmlFor="phone">Номер телефона</label>
         <input
           type="tel"
@@ -100,7 +101,7 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
         />
       </div>
       
-      <div className="form-group">
+      <div className={styles.formGroup}>
         <label htmlFor="totalOrdersAmount">Сумма заказов</label>
         <input
           type="number"
@@ -112,7 +113,7 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
         />
       </div>
       
-      <div className="form-group">
+      <div className={styles.formGroup}>
         <label htmlFor="visitCount">Количество посещений</label>
         <input
           type="number"
@@ -124,7 +125,7 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
         />
       </div>
       
-      <div className="form-group">
+      <div className={styles.formGroup}>
         <label htmlFor="averageCheck">Средний чек</label>
         <input
           type="number"
@@ -136,11 +137,11 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
         />
       </div>
       
-      <div className="form-actions">
-        <button type="button" onClick={() => navigate('/users')} className="cancel-button">
+      <div className={styles.formActions}>
+        <button type="button" onClick={() => navigate('/users')} className={styles.cancelButton}>
           Отмена
         </button>
-        <button type="submit" className="submit-button">
+        <button type="submit" className={styles.submitButton}>
           {isEditMode ? 'Сохранить' : 'Добавить'}
         </button>
       </div>

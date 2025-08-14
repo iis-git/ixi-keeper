@@ -6,7 +6,7 @@ const app = express();
 const port = process.env.PORT || 3020;
 
 // Импортируем модели
-const { User, Product, Order, OrderProduct } = require('./db/models');
+const { User, Product, Order, OrderProduct, Category, ProductIngredient } = require('./db/models');
 
 // Добавляем CORS middleware для обработки запросов с клиента
 app.use((req, res, next) => {
@@ -109,8 +109,43 @@ app.post('/api/products', async (req, res) => {
 
 app.get('/api/products', async (req, res) => {
   try {
-    const products = await Product.findAll();
-    res.json(products);
+    const products = await Product.findAll({
+      include: [
+        { model: Category, as: 'category' },
+        {
+          model: ProductIngredient,
+          as: 'ingredients',
+          include: [
+            {
+              model: Product,
+              as: 'ingredientProduct',
+              attributes: ['id', 'name', 'stock', 'unit']
+            }
+          ]
+        }
+      ]
+    });
+
+    // Для составных товаров рассчитываем доступное количество
+    const productsWithCalculatedStock = products.map(product => {
+      const productData = product.toJSON();
+      
+      if (productData.isComposite && productData.ingredients && productData.ingredients.length > 0) {
+        // Рассчитываем максимальное количество порций на основе ингредиентов
+        const availablePortions = productData.ingredients.map(ingredient => {
+          const ingredientStock = ingredient.ingredientProduct.stock;
+          const requiredQuantity = ingredient.quantity;
+          return Math.floor(ingredientStock / requiredQuantity);
+        });
+        
+        // Берем минимальное значение (лимитирующий ингредиент)
+        productData.calculatedStock = Math.min(...availablePortions);
+      }
+      
+      return productData;
+    });
+
+    res.json(productsWithCalculatedStock);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -119,10 +154,38 @@ app.get('/api/products', async (req, res) => {
 app.get('/api/products/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const product = await Product.findByPk(id);
+    const product = await Product.findByPk(id, {
+      include: [
+        { model: Category, as: 'category' },
+        {
+          model: ProductIngredient,
+          as: 'ingredients',
+          include: [
+            {
+              model: Product,
+              as: 'ingredientProduct',
+              attributes: ['id', 'name', 'stock', 'unit']
+            }
+          ]
+        }
+      ]
+    });
     
     if (product) {
-      res.json(product);
+      const productData = product.toJSON();
+      
+      // Для составных товаров рассчитываем доступное количество
+      if (productData.isComposite && productData.ingredients && productData.ingredients.length > 0) {
+        const availablePortions = productData.ingredients.map(ingredient => {
+          const ingredientStock = ingredient.ingredientProduct.stock;
+          const requiredQuantity = ingredient.quantity;
+          return Math.floor(ingredientStock / requiredQuantity);
+        });
+        
+        productData.calculatedStock = Math.min(...availablePortions);
+      }
+      
+      res.json(productData);
     } else {
       res.status(404).json({ message: 'Товар не найден' });
     }
@@ -166,6 +229,122 @@ app.delete('/api/products/:id', async (req, res) => {
   }
 });
 
+// API для управления ингредиентами составных товаров
+app.post('/api/products/:id/ingredients', async (req, res) => {
+  try {
+    const compositeProductId = parseInt(req.params.id);
+    const { ingredientProductId, quantity } = req.body;
+
+    // Проверяем, что составной товар существует и является составным
+    const compositeProduct = await Product.findByPk(compositeProductId);
+    if (!compositeProduct) {
+      return res.status(404).json({ message: 'Составной товар не найден' });
+    }
+    if (!compositeProduct.isComposite) {
+      return res.status(400).json({ message: 'Товар не является составным' });
+    }
+
+    // Проверяем, что ингредиент существует
+    const ingredientProduct = await Product.findByPk(ingredientProductId);
+    if (!ingredientProduct) {
+      return res.status(404).json({ message: 'Товар-ингредиент не найден' });
+    }
+
+    // Создаем связь ингредиента
+    const ingredient = await ProductIngredient.create({
+      compositeProductId,
+      ingredientProductId,
+      quantity
+    });
+
+    res.status(201).json(ingredient);
+  } catch (error) {
+    if (error.name === 'SequelizeUniqueConstraintError') {
+      res.status(400).json({ message: 'Этот ингредиент уже добавлен в состав товара' });
+    } else {
+      res.status(500).json({ message: error.message });
+    }
+  }
+});
+
+app.get('/api/products/:id/ingredients', async (req, res) => {
+  try {
+    const compositeProductId = parseInt(req.params.id);
+    
+    const ingredients = await ProductIngredient.findAll({
+      where: { compositeProductId },
+      include: [
+        {
+          model: Product,
+          as: 'ingredientProduct',
+          attributes: ['id', 'name', 'stock', 'unit', 'price']
+        }
+      ]
+    });
+
+    res.json(ingredients);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.put('/api/products/:id/ingredients/:ingredientId', async (req, res) => {
+  try {
+    const compositeProductId = parseInt(req.params.id);
+    const ingredientId = parseInt(req.params.ingredientId);
+    const { quantity } = req.body;
+
+    const [updated] = await ProductIngredient.update(
+      { quantity },
+      {
+        where: {
+          id: ingredientId,
+          compositeProductId: compositeProductId
+        }
+      }
+    );
+
+    if (updated) {
+      const updatedIngredient = await ProductIngredient.findByPk(ingredientId, {
+        include: [
+          {
+            model: Product,
+            as: 'ingredientProduct',
+            attributes: ['id', 'name', 'stock', 'unit']
+          }
+        ]
+      });
+      res.json(updatedIngredient);
+    } else {
+      res.status(404).json({ message: 'Ингредиент не найден' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.delete('/api/products/:id/ingredients/:ingredientId', async (req, res) => {
+  try {
+    const compositeProductId = parseInt(req.params.id);
+    const ingredientId = parseInt(req.params.ingredientId);
+
+    const deleted = await ProductIngredient.destroy({
+      where: {
+        id: ingredientId,
+        compositeProductId: compositeProductId
+      }
+    });
+
+    if (deleted) {
+      res.status(204).send();
+    } else {
+      res.status(404).json({ message: 'Ингредиент не найден' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
 // Обработчики для заказов
 app.post('/api/orders', async (req, res) => {
   try {
@@ -188,6 +367,42 @@ app.post('/api/orders', async (req, res) => {
       }));
       
       await OrderProduct.bulkCreate(orderProducts);
+      
+      // Списываем товары со склада
+      for (const product of products) {
+        const productData = await Product.findByPk(product.id, {
+          include: [
+            {
+              model: ProductIngredient,
+              as: 'ingredients',
+              include: [
+                {
+                  model: Product,
+                  as: 'ingredientProduct'
+                }
+              ]
+            }
+          ]
+        });
+
+        if (productData.isComposite && productData.ingredients && productData.ingredients.length > 0) {
+          // Для составных товаров списываем ингредиенты
+          for (const ingredient of productData.ingredients) {
+            const totalQuantityToDeduct = ingredient.quantity * product.quantity;
+            await Product.decrement('stock', {
+              by: totalQuantityToDeduct,
+              where: { id: ingredient.ingredientProductId }
+            });
+          }
+        } else {
+          // Для обычных товаров списываем согласно unitSize
+          const totalQuantityToDeduct = productData.unitSize * product.quantity;
+          await Product.decrement('stock', {
+            by: totalQuantityToDeduct,
+            where: { id: product.id }
+          });
+        }
+      }
       
       // Обновляем статистику пользователя
       const user = await User.findByPk(userId);
@@ -295,6 +510,79 @@ app.delete('/api/orders/:id', async (req, res) => {
       res.status(204).send();
     } else {
       res.status(404).json({ message: 'Заказ не найден' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Обработчики для категорий
+app.post('/api/categories', async (req, res) => {
+  try {
+    const category = await Category.create(req.body);
+    res.status(201).json(category);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.get('/api/categories', async (req, res) => {
+  try {
+    const categories = await Category.findAll({
+      include: [{ model: Product, as: 'products' }]
+    });
+    res.json(categories);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.get('/api/categories/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const category = await Category.findByPk(id, {
+      include: [{ model: Product, as: 'products' }]
+    });
+    
+    if (category) {
+      res.json(category);
+    } else {
+      res.status(404).json({ message: 'Категория не найдена' });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+app.put('/api/categories/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const [updated] = await Category.update(req.body, {
+      where: { id: id }
+    });
+    
+    if (updated) {
+      const updatedCategory = await Category.findByPk(id);
+      res.json(updatedCategory);
+    } else {
+      res.status(404).json({ message: 'Категория не найдена' });
+    }
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+});
+
+app.delete('/api/categories/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const deleted = await Category.destroy({
+      where: { id: id }
+    });
+    
+    if (deleted) {
+      res.status(204).send();
+    } else {
+      res.status(404).json({ message: 'Категория не найдена' });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });

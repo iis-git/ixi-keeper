@@ -8,6 +8,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3021, // Фиксированный порт для клиентского приложения
+    host: '0.0.0.0', // Разрешить подключения из сети
     open: true
   },
   resolve: {

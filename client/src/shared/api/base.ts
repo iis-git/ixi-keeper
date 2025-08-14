@@ -1,6 +1,20 @@
 import axios from 'axios';
 
-export const API_URL = 'http://localhost:3020/api';
+// Определяем базовый URL API динамически
+const getApiUrl = (): string => {
+  // Иначе определяем автоматически на основе текущего хоста
+  const currentHost = window.location.hostname;
+  const apiPort = '3020';
+  
+  // Если localhost, используем localhost, иначе используем текущий хост
+  if (currentHost === 'localhost' || currentHost === '127.0.0.1') {
+    return `http://localhost:${apiPort}/api`;
+  } else {
+    return `http://${currentHost}:${apiPort}/api`;
+  }
+};
+
+export const API_URL = getApiUrl();
 
 export const api = axios.create({
   baseURL: API_URL,

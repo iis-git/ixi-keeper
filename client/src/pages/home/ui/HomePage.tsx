@@ -1,20 +1,31 @@
 import { FC } from 'react';
-import { Link } from 'react-router-dom';
+import { ProductSelector } from '../../../features/product/selector';
+import type { Product } from '../../../entities/product/model/types';
+import styles from './HomePage.module.scss';
 
 export const HomePage: FC = () => {
-  return (
-    <div className="home">
-      <h1>Добро пожаловать в Ixi-Keeper</h1>
-      <p className="description">
-        Клиентское приложение для взаимодействия с REST API Ixi-Keeper.
-      </p>
+  const handleProductSelect = (product: Product) => {
+    console.log('Выбран товар:', product);
+    // Здесь будет логика добавления в заказ
+  };
 
-      <div className="card-container">
-        <div className="card">
-          <h2>Пользователи</h2>
-          <p>Управление пользователями: создание, просмотр, редактирование и удаление.</p>
-          <Link to="/users" className="button">Перейти к пользователям</Link>
+  return (
+    <div className={styles.home}>
+      <div className={styles.sidebar}>
+        <div className={styles.sidebarContent}>
+          <h2>Панель управления</h2>
+          <p>Быстрый доступ к основным функциям</p>
+          {/* Здесь можно добавить дополнительные элементы управления */}
         </div>
+      </div>
+      
+      <div className={styles.mainContent}>
+        <ProductSelector 
+          onProductSelect={handleProductSelect}
+          headerTitle="Выбор товаров"
+          manageButtonText="Управление товарами"
+          manageButtonLink="/products"
+        />
       </div>
     </div>
   );

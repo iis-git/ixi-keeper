@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import '../styles/UserForm.css';
+import styles from './UserForm.module.scss';
 import { User } from '../types';
 
 const UserForm: React.FC = () => {
@@ -89,19 +89,19 @@ const UserForm: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="loading">Загрузка...</div>;
+    return <div className={styles.loading}>Загрузка...</div>;
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return <div className={styles.error}>{error}</div>;
   }
 
   return (
-    <div className="user-form-container">
+    <div className={styles.userFormContainer}>
       <h1>{isEditMode ? 'Редактирование пользователя' : 'Добавление нового пользователя'}</h1>
       
-      <form onSubmit={handleSubmit} className="user-form">
-        <div className="form-group">
+      <form onSubmit={handleSubmit} className={styles.userForm}>
+        <div className={styles.formGroup}>
           <label htmlFor="name">Имя</label>
           <input
             type="text"
@@ -113,7 +113,7 @@ const UserForm: React.FC = () => {
           />
         </div>
         
-        <div className="form-group">
+        <div className={styles.formGroup}>
           <label htmlFor="phone">Номер телефона</label>
           <input
             type="tel"
@@ -125,7 +125,7 @@ const UserForm: React.FC = () => {
           />
         </div>
         
-        <div className="form-group">
+        <div className={styles.formGroup}>
           <label htmlFor="totalOrdersAmount">Сумма заказов</label>
           <input
             type="number"
@@ -137,7 +137,7 @@ const UserForm: React.FC = () => {
           />
         </div>
         
-        <div className="form-group">
+        <div className={styles.formGroup}>
           <label htmlFor="visitCount">Количество посещений</label>
           <input
             type="number"
@@ -149,7 +149,7 @@ const UserForm: React.FC = () => {
           />
         </div>
         
-        <div className="form-group">
+        <div className={styles.formGroup}>
           <label htmlFor="averageCheck">Средний чек</label>
           <input
             type="number"
@@ -161,11 +161,11 @@ const UserForm: React.FC = () => {
           />
         </div>
         
-        <div className="form-actions">
-          <button type="button" onClick={() => navigate('/users')} className="cancel-button">
+        <div className={styles.formActions}>
+          <button type="button" onClick={() => navigate('/users')} className={styles.cancelButton}>
             Отмена
           </button>
-          <button type="submit" className="submit-button">
+          <button type="submit" className={styles.submitButton}>
             {isEditMode ? 'Сохранить' : 'Добавить'}
           </button>
         </div>

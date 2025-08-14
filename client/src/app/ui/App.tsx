@@ -1,8 +1,13 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { HomePage } from '../../pages/home/ui/HomePage';
+import { HomePage } from '../../pages/home';
 import { UsersPage } from '../../pages/users/ui/UsersPage';
 import { UserFormPage } from '../../pages/user-form/ui/UserFormPage';
+import { ProductsPage } from '../../pages/products';
+import { ProductFormPage } from '../../pages/product-form';
+import { ProductDisplayPage } from '../../pages/product-display';
+import { CategoriesPage } from '../../pages/categories';
+import { CategoryFormPage } from '../../pages/category-form';
 // @ts-ignore
 import styles from './App.module.scss';
 
@@ -17,7 +22,9 @@ const App: React.FC = () => {
             <ul>
               <li><Link to="/">Главная</Link></li>
               <li><Link to="/users">Пользователи</Link></li>
-              <li><Link to="/users/new">Добавить пользователя</Link></li>
+              <li><Link to="/products">Товары</Link></li>
+              <li><Link to="/product-display">Выбор товаров</Link></li>
+              <li><Link to="/categories">Категории</Link></li>
             </ul>
           </nav>
         </header>
@@ -27,6 +34,13 @@ const App: React.FC = () => {
             <Route path="/users" element={<UsersPage />} />
             <Route path="/users/new" element={<UserFormPage />} />
             <Route path="/users/edit/:id" element={<UserFormPage />} />
+            <Route path="/products" element={<ProductsPage />} />
+            <Route path="/products/new" element={<ProductFormPage />} />
+            <Route path="/products/edit/:id" element={<ProductFormPage />} />
+            <Route path="/product-display" element={<ProductDisplayPage />} />
+            <Route path="/categories" element={<CategoriesPage />} />
+            <Route path="/categories/new" element={<CategoryFormPage />} />
+            <Route path="/categories/edit/:id" element={<CategoryFormPage />} />
           </Routes>
         </main>
         <footer className={styles.footer}>

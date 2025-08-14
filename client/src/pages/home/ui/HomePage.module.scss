@@ -1,75 +1,74 @@
 .home {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  padding: 40px 0;
-
-  h1 {
-    margin-bottom: 20px;
-    color: #646cff;
-  }
-}
-
-.description {
-  max-width: 800px;
-  margin-bottom: 40px;
-  color: #666;
-  font-size: 1.2rem;
-}
-
-.cardContainer {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 30px;
+  height: 100vh;
   width: 100%;
-  max-width: 1000px;
+  overflow: hidden;
 }
 
-.card {
-  background-color: #f9f9f9;
-  border-radius: 8px;
-  padding: 30px;
-  width: 100%;
-  max-width: 400px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  transition: transform 0.3s, box-shadow 0.3s;
+.sidebar {
+  flex: 1;
+  background-color: #f8f9fa;
+  border-right: 1px solid #e0e0e0;
+  padding: 20px;
+  overflow-y: auto;
+}
 
-  &:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
-  }
-
+.sidebarContent {
   h2 {
     color: #333;
     margin-bottom: 15px;
+    font-size: 1.5rem;
   }
 
   p {
     color: #666;
-    margin-bottom: 25px;
+    font-size: 1rem;
+    line-height: 1.5;
   }
 }
 
-.button {
-  display: inline-block;
-  background-color: #646cff;
-  color: white;
-  padding: 10px 20px;
-  border-radius: 4px;
-  font-weight: 500;
-  transition: background-color 0.3s;
+.mainContent {
+  flex: 3;
+  overflow-y: auto;
+  background-color: #ffffff;
+}
 
-  &:hover {
-    background-color: #535bf2;
+@media (max-width: 768px) {
+  .home {
+    flex-direction: column;
+    height: auto;
+  }
+
+  .sidebar {
+    flex: none;
+    border-right: none;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 15px;
+  }
+
+  .sidebarContent {
+    h2 {
+      font-size: 1.3rem;
+      margin-bottom: 10px;
+    }
+
+    p {
+      font-size: 0.9rem;
+    }
+  }
+
+  .mainContent {
+    flex: none;
   }
 }
 
 @media (prefers-color-scheme: dark) {
-  .card {
+  .sidebar {
     background-color: #2a2a2a;
+    border-right-color: #404040;
+  }
 
+  .sidebarContent {
     h2 {
       color: #f1f1f1;
     }
@@ -79,7 +78,7 @@
     }
   }
 
-  .description {
-    color: #b1b1b1;
+  .mainContent {
+    background-color: #1a1a1a;
   }
 }

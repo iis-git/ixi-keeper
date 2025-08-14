@@ -1,6 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
-import { Home } from './pages/Home';
+import Home from './pages/home/ui/HomePage';
 import Users from './pages/Users';
 import UserForm from './pages/UserForm';
 import './styles/App.css';

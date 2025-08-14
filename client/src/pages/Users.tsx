@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
-import '../styles/Users.css';
+import styles from './Users.module.scss';
 import { User } from '../types';
 
 const Users: React.FC = () => {
@@ -56,22 +56,22 @@ const Users: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="loading">Загрузка...</div>;
+    return <div className={styles.loading}>Загрузка...</div>;
   }
 
   if (error) {
-    return <div className="error">{error}</div>;
+    return <div className={styles.error}>{error}</div>;
   }
 
   return (
-    <div className="users-container">
-      <div className="users-header">
+    <div className={styles.usersContainer}>
+      <div className={styles.usersHeader}>
         <h1>Пользователи</h1>
-        <Link to="/users/new" className="add-button">Добавить пользователя</Link>
+        <Link to="/users/new" className={styles.addButton}>Добавить пользователя</Link>
       </div>
 
       {users.length > 0 ? (
-        <table className="users-table">
+        <table className={styles.usersTable}>
           <thead>
             <tr>
               <th>ID</th>
@@ -92,16 +92,16 @@ const Users: React.FC = () => {
                 <td>{user.totalOrdersAmount}</td>
                 <td>{user.visitCount}</td>
                 <td>{user.averageCheck}</td>
-                <td className="actions">
-                  <Link to={`/users/edit/${index}`} className="edit-button">Изменить</Link>
-                  <button onClick={() => handleDelete(index)} className="delete-button">Удалить</button>
+                <td className={styles.actions}>
+                  <Link to={`/users/edit/${index}`} className={styles.editButton}>Изменить</Link>
+                  <button onClick={() => handleDelete(index)} className={styles.deleteButton}>Удалить</button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       ) : (
-        <p className="no-users">Пользователи не найдены.</p>
+        <p className={styles.noUsers}>Пользователи не найдены.</p>
       )}
     </div>
   );
