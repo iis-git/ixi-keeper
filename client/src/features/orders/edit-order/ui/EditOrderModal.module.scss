@@ -1,0 +1,239 @@
+.editOrderModal {
+  .form {
+    .ant-form-item {
+      margin-bottom: 16px;
+    }
+
+    .ant-input,
+    .ant-input-number,
+    .ant-select-selector {
+      border-radius: 8px;
+      border: 2px solid #e8e8e8;
+      transition: all 0.3s ease;
+
+      &:hover {
+        border-color: #40a9ff;
+      }
+
+      &:focus,
+      &.ant-input-focused,
+      &.ant-input-number-focused,
+      &.ant-select-focused .ant-select-selector {
+        border-color: #1890ff;
+        box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+      }
+    }
+
+    .ant-input-number {
+      width: 100%;
+    }
+  }
+
+  .orderItems {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #f0f0f0;
+    border-radius: 8px;
+    padding: 8px;
+
+    .ant-list-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background-color 0.3s ease;
+
+      &:hover {
+        background-color: #fafafa;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+
+      .ant-list-item-meta-title {
+        font-weight: 600;
+        color: #262626;
+        margin-bottom: 4px;
+      }
+
+      .ant-list-item-meta-description {
+        color: #595959;
+      }
+
+      .ant-list-item-action {
+        margin-left: 16px;
+
+        .ant-btn {
+          border: none;
+          box-shadow: none;
+          
+          &:hover {
+            background-color: #f5f5f5;
+          }
+
+          &.ant-btn-dangerous:hover {
+            background-color: #fff2f0;
+            color: #ff4d4f;
+          }
+        }
+      }
+    }
+
+    .itemTotal {
+      font-weight: 600;
+      color: #1890ff;
+      font-size: 16px;
+    }
+  }
+
+  .totalSection {
+    text-align: right;
+    padding: 16px 0;
+    border-top: 2px solid #f0f0f0;
+
+    .ant-typography {
+      margin: 0;
+      color: #262626;
+    }
+  }
+
+  .actions {
+    display: flex;
+    justify-content: center;
+    padding-top: 16px;
+    border-top: 1px solid #f0f0f0;
+
+    .ant-space {
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .ant-btn {
+      border-radius: 8px;
+      font-weight: 500;
+      min-width: 120px;
+      height: 40px;
+      
+      &.ant-btn-primary {
+        background: linear-gradient(135deg, #1890ff 0%, #40a9ff 100%);
+        border: none;
+        box-shadow: 0 2px 8px rgba(24, 144, 255, 0.3);
+
+        &:hover {
+          background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(24, 144, 255, 0.4);
+        }
+      }
+
+      &.ant-btn-dangerous {
+        background: linear-gradient(135deg, #ff4d4f 0%, #ff7875 100%);
+        border: none;
+        color: white;
+        box-shadow: 0 2px 8px rgba(255, 77, 79, 0.3);
+
+        &:hover {
+          background: linear-gradient(135deg, #ff7875 0%, #ff4d4f 100%);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 12px rgba(255, 77, 79, 0.4);
+        }
+      }
+
+      &:not(.ant-btn-primary):not(.ant-btn-dangerous) {
+        border: 2px solid #d9d9d9;
+        background: white;
+
+        &:hover {
+          border-color: #40a9ff;
+          color: #1890ff;
+          transform: translateY(-1px);
+        }
+      }
+    }
+  }
+}
+
+// Адаптивность
+@media (max-width: 768px) {
+  .editOrderModal {
+    .actions {
+      .ant-space {
+        .ant-btn {
+          min-width: 100px;
+          margin-bottom: 8px;
+        }
+      }
+    }
+
+    .orderItems {
+      max-height: 250px;
+    }
+  }
+}
+
+// Кастомизация компонентов Ant Design
+.editOrderModal {
+  .ant-modal-header {
+    border-bottom: 2px solid #f0f0f0;
+    padding: 20px 24px;
+
+    .ant-modal-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #262626;
+    }
+  }
+
+  .ant-modal-body {
+    padding: 24px;
+  }
+
+  .ant-divider {
+    margin: 16px 0;
+    border-color: #e8e8e8;
+
+    &.ant-divider-with-text {
+      .ant-divider-inner-text {
+        font-weight: 600;
+        color: #595959;
+      }
+    }
+  }
+
+  .ant-list-empty-text {
+    color: #8c8c8c;
+    font-style: italic;
+  }
+}
+
+// Анимации
+.editOrderModal {
+  .ant-btn {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .ant-list-item {
+    transition: all 0.3s ease;
+  }
+
+  .orderItems {
+    scrollbar-width: thin;
+    scrollbar-color: #d9d9d9 transparent;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background-color: #d9d9d9;
+      border-radius: 3px;
+
+      &:hover {
+        background-color: #bfbfbf;
+      }
+    }
+  }
+}

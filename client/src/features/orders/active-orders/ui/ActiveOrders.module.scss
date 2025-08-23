@@ -1,0 +1,317 @@
+.activeOrders {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  height: fit-content;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #f0f0f0;
+
+  h3 {
+    margin: 0;
+    color: #333;
+    font-size: 18px;
+  }
+}
+
+.counter {
+  background: #646cff;
+  color: white;
+  border-radius: 12px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: bold;
+  min-width: 20px;
+  text-align: center;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 20px;
+  color: #666;
+  font-style: italic;
+}
+
+.error {
+  color: #f44336;
+  background: #ffebee;
+  border-radius: 4px;
+}
+
+.noOrders {
+  text-align: center;
+  padding: 40px 20px;
+  color: #666;
+
+  p {
+    margin: 0;
+    font-style: italic;
+  }
+}
+
+.ordersList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.orderCard {
+  border: 1px solid #e1e5e9;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s;
+
+  &:hover {
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.orderHeader {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  cursor: pointer;
+  background: #f8f9fa;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background: #e9ecef;
+  }
+}
+
+.orderInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.guestName {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.orderMeta {
+  display: flex;
+  gap: 10px;
+  font-size: 12px;
+  color: #666;
+}
+
+.time {
+  font-weight: 500;
+}
+
+.itemsCount {
+  color: #888;
+}
+
+.totalAmount {
+  font-weight: bold;
+  color: #2e7d32;
+  font-size: 16px;
+  margin-right: 10px;
+}
+
+.expandIcon {
+  color: #666;
+  font-size: 12px;
+  transition: transform 0.2s;
+
+  &.expanded {
+    transform: rotate(180deg);
+  }
+}
+
+.orderDetails {
+  padding: 15px;
+  background: white;
+  border-top: 1px solid #e1e5e9;
+}
+
+.orderItems {
+  margin-bottom: 15px;
+}
+
+.orderItem {
+  display: flex;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #f0f0f0;
+  position: relative;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &:hover .removeItemBtn {
+    opacity: 1;
+  }
+}
+
+.itemName {
+  flex: 1;
+  color: #333;
+  font-weight: 500;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-right: 10px;
+}
+
+.itemQuantity {
+  color: #666;
+  font-size: 14px;
+  margin-right: 10px;
+  min-width: 30px;
+  text-align: right;
+}
+
+.itemPrice {
+  color: #2e7d32;
+  font-weight: 600;
+  min-width: 60px;
+  text-align: right;
+  margin-right: 8px;
+}
+
+.removeItemBtn {
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: #f44336;
+  color: white;
+  font-size: 14px;
+  font-weight: bold;
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  flex-shrink: 0;
+
+  &:hover {
+    background: #d32f2f;
+    transform: scale(1.1);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+}
+
+.orderTotal {
+  text-align: right;
+  padding: 10px 0;
+  border-top: 2px solid #e1e5e9;
+  margin-bottom: 15px;
+  color: #333;
+}
+
+.orderActions {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.actionBtn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  margin-right: 8px;
+
+  &:last-child {
+    margin-right: 0;
+  }
+
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.editBtn {
+  background: #1890ff;
+  color: white;
+
+  &:hover {
+    background: #40a9ff;
+  }
+}
+
+.payBtn {
+  background: #4caf50;
+  color: white;
+
+  &:hover {
+    background: #45a049;
+  }
+}
+
+.closeBtn {
+  background: #f44336;
+  color: white;
+
+  &:hover {
+    background: #da190b;
+  }
+}
+
+// Адаптивность
+@media (max-width: 768px) {
+  .activeOrders {
+    padding: 15px;
+  }
+
+  .orderHeader {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .orderInfo {
+    min-width: 120px;
+  }
+
+  .totalAmount {
+    order: 3;
+    flex-basis: 100%;
+    text-align: left;
+    margin-right: 0;
+    margin-top: 5px;
+  }
+
+  .orderActions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .actionBtn {
+    width: 100%;
+  }
+
+  .removeItemBtn {
+    opacity: 1; // Всегда видимы на мобильных
+    width: 24px;
+    height: 24px;
+    font-size: 16px;
+  }
+}

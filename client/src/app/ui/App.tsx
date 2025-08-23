@@ -8,6 +8,7 @@ import { ProductFormPage } from '../../pages/product-form';
 import { ProductDisplayPage } from '../../pages/product-display';
 import { CategoriesPage } from '../../pages/categories';
 import { CategoryFormPage } from '../../pages/category-form';
+import { OrdersPage } from '../../pages/orders';
 // @ts-ignore
 import styles from './App.module.scss';
 
@@ -25,6 +26,7 @@ const App: React.FC = () => {
               <li><Link to="/products">Товары</Link></li>
               <li><Link to="/product-display">Выбор товаров</Link></li>
               <li><Link to="/categories">Категории</Link></li>
+              <li><Link to="/orders">Заказы</Link></li>
             </ul>
           </nav>
         </header>
@@ -41,6 +43,7 @@ const App: React.FC = () => {
             <Route path="/categories" element={<CategoriesPage />} />
             <Route path="/categories/new" element={<CategoryFormPage />} />
             <Route path="/categories/edit/:id" element={<CategoryFormPage />} />
+            <Route path="/orders" element={<OrdersPage />} />
           </Routes>
         </main>
         <footer className={styles.footer}>

@@ -1,33 +1,67 @@
 import React, { useState } from 'react';
 import { ProductGrid } from '../../display';
+import { CreateOrderModal } from '../../../orders/create-order';
+import { OrderActionModal } from '../../../orders/action-selector';
+import { orderApi } from '../../../../shared/api/order';
 import type { Product } from '../../../../entities/product/model/types';
 import styles from './ProductSelector.module.scss';
 
 interface ProductSelectorProps {
   onProductSelect?: (product: Product) => void;
-  showSelectedProduct?: boolean;
+  openOrderId?: number | null;
+  onOrderUpdate?: () => void;
+  className?: string;
   showHeader?: boolean;
   headerTitle?: string;
   showManageButton?: boolean;
   manageButtonText?: string;
   manageButtonLink?: string;
-  className?: string;
+  refreshTrigger?: number;
 }
 
 const ProductSelector: React.FC<ProductSelectorProps> = ({
   onProductSelect,
-  showSelectedProduct = true,
+  openOrderId,
+  onOrderUpdate,
+  className,
   showHeader = true,
   headerTitle = 'Выбор товаров',
   showManageButton = true,
   manageButtonText = 'Управление товарами',
   manageButtonLink = '/products',
-  className
+  refreshTrigger
 }) => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleProductClick = (product: Product) => {
+  const handleProductClick = async (product: Product) => {
     setSelectedProduct(product);
+    
+    // Если есть открытый заказ - добавляем товар к нему
+    if (openOrderId) {
+      setIsLoading(true);
+      try {
+        await orderApi.addItem(openOrderId, product.id, 1);
+        console.log(`Товар ${product.name} добавлен к заказу ${openOrderId}`);
+        
+        // Вызываем callback для обновления заказов
+        if (onOrderUpdate) {
+          onOrderUpdate();
+        }
+      } catch (error: any) {
+        console.error('Ошибка при добавлении товара к заказу:', error);
+        alert(error.response?.data?.message || 'Ошибка при добавлении товара к заказу');
+      } finally {
+        setIsLoading(false);
+        setSelectedProduct(null);
+      }
+      return;
+    }
+    
+    // Иначе показываем модалку выбора действия
+    setIsActionModalOpen(true);
     console.log('Выбран товар:', product);
     
     // Вызываем callback если передан
@@ -36,7 +70,38 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     }
   };
 
-  const clearSelection = () => {
+  const handleActionModalClose = () => {
+    setIsActionModalOpen(false);
+    setSelectedProduct(null);
+  };
+
+  const handleCreateModalClose = () => {
+    setIsCreateModalOpen(false);
+    setSelectedProduct(null);
+  };
+
+  const handleCreateOrder = (orderData: any) => {
+    console.log('Создание заказа:', orderData);
+    // Здесь будет логика создания заказа
+    setIsCreateModalOpen(false);
+    setSelectedProduct(null);
+  };
+
+  const handleCreateAnonymous = () => {
+    console.log('Создать ноунэйм заказ');
+    setIsActionModalOpen(false);
+    setSelectedProduct(null);
+  };
+
+  const handleCreateWithGuest = () => {
+    console.log('Создать заказ с гостем');
+    setIsActionModalOpen(false);
+    setIsCreateModalOpen(true);
+  };
+
+  const handleAddToActive = () => {
+    console.log('Добавить к активному заказу');
+    setIsActionModalOpen(false);
     setSelectedProduct(null);
   };
 
@@ -55,36 +120,23 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         </div>
       )}
 
-      {showSelectedProduct && selectedProduct && (
-        <div className={styles.selectedProduct}>
-          <h3>Выбранный товар:</h3>
-          <div className={styles.productInfo}>
-            <span className={styles.productName}>{selectedProduct.name}</span>
-            <span className={styles.productPrice}>{selectedProduct.price} ₽</span>
-            {selectedProduct.category && (
-              <span 
-                className={styles.categoryBadge}
-                style={{ backgroundColor: selectedProduct.category.color }}
-              >
-                {selectedProduct.category.name}
-              </span>
-            )}
-            {selectedProduct.isComposite && (
-              <span className={styles.compositeLabel}>
-                Коктейль
-              </span>
-            )}
-          </div>
-          <button 
-            className={styles.clearButton}
-            onClick={clearSelection}
-          >
-            Очистить выбор
-          </button>
-        </div>
-      )}
-
-      <ProductGrid onProductClick={handleProductClick} />
+      <ProductGrid onProductClick={handleProductClick} refreshTrigger={refreshTrigger} />
+      
+      <OrderActionModal
+        product={selectedProduct}
+        open={isActionModalOpen}
+        onCancel={handleActionModalClose}
+        onCreateAnonymous={handleCreateAnonymous}
+        onCreateWithGuest={handleCreateWithGuest}
+        onAddToActive={handleAddToActive}
+      />
+      
+      <CreateOrderModal
+        product={selectedProduct}
+        open={isCreateModalOpen}
+        onCancel={handleCreateModalClose}
+        onCreateOrder={handleCreateOrder}
+      />
     </div>
   );
 };

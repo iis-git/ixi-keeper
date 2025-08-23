@@ -23,22 +23,51 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       autoIncrement: true,
     },
+    guestName: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      comment: 'Имя гостя для заказа'
+    },
+    orderItems: {
+      type: DataTypes.JSON,
+      allowNull: false,
+      defaultValue: [],
+      comment: 'Список позиций в заказе с количеством и ценами'
+    },
+    totalAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Общая сумма заказа'
+    },
+    status: {
+      type: DataTypes.ENUM('active', 'completed', 'cancelled'),
+      defaultValue: 'active',
+      comment: 'Статус заказа: активный, завершенный, отмененный'
+    },
+    paymentMethod: {
+      type: DataTypes.ENUM('cash', 'card', 'transfer'),
+      allowNull: true,
+      comment: 'Способ оплаты: наличные, карта, перевод'
+    },
+    comment: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      comment: 'Комментарий к заказу'
+    },
+    closedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      comment: 'Дата и время закрытия заказа'
+    },
     userId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'users',
         key: 'id',
       },
-    },
-    totalAmount: {
-      type: DataTypes.FLOAT,
-      allowNull: false,
-      defaultValue: 0,
-    },
-    status: {
-      type: DataTypes.ENUM('pending', 'completed', 'cancelled'),
-      defaultValue: 'pending',
+      comment: 'ID пользователя (опционально, для совместимости)'
     },
     createdAt: {
       type: DataTypes.DATE,

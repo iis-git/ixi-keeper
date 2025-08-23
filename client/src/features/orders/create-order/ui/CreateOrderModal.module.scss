@@ -1,0 +1,214 @@
+.orderForm {
+  .productInfo {
+    margin-bottom: 24px;
+
+    h3 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: #262626;
+    }
+  }
+
+  .productCard {
+    background: #f8f9fa;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 16px;
+
+    .productDetails {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+
+      .productName {
+        font-weight: 600;
+        font-size: 16px;
+        color: #262626;
+      }
+
+      .productPrice {
+        font-weight: 600;
+        color: #52c41a;
+        font-size: 16px;
+      }
+
+      .categoryBadge {
+        padding: 4px 8px;
+        border-radius: 12px;
+        color: white;
+        font-size: 12px;
+        font-weight: 500;
+      }
+
+      .compositeLabel {
+        background: #722ed1;
+        color: white;
+        padding: 4px 8px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+      }
+    }
+
+    .availability {
+      color: #666;
+      font-size: 14px;
+    }
+  }
+
+  .formFields {
+    .field {
+      margin-bottom: 16px;
+
+      label {
+        display: block;
+        margin-bottom: 6px;
+        font-weight: 500;
+        color: #262626;
+        font-size: 14px;
+      }
+
+      .input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d9d9d9;
+        border-radius: 6px;
+        font-size: 14px;
+        transition: border-color 0.2s;
+
+        &:focus {
+          outline: none;
+          border-color: #1890ff;
+          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+
+        &::placeholder {
+          color: #bfbfbf;
+        }
+      }
+
+      .textarea {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #d9d9d9;
+        border-radius: 6px;
+        font-size: 14px;
+        resize: vertical;
+        font-family: inherit;
+        transition: border-color 0.2s;
+
+        &:focus {
+          outline: none;
+          border-color: #1890ff;
+          box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+        }
+
+        &::placeholder {
+          color: #bfbfbf;
+        }
+      }
+
+      .quantityControl {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .quantityBtn {
+          width: 32px;
+          height: 32px;
+          border: 1px solid #d9d9d9;
+          background: white;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          font-size: 16px;
+          font-weight: 600;
+          transition: all 0.2s;
+
+          &:hover:not(:disabled) {
+            border-color: #1890ff;
+            color: #1890ff;
+          }
+
+          &:disabled {
+            background: #f5f5f5;
+            color: #bfbfbf;
+            cursor: not-allowed;
+          }
+        }
+
+        .quantityInput {
+          width: 80px;
+          padding: 6px 8px;
+          border: 1px solid #d9d9d9;
+          border-radius: 6px;
+          text-align: center;
+          font-size: 14px;
+
+          &:focus {
+            outline: none;
+            border-color: #1890ff;
+            box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.2);
+          }
+
+          /* Убираем стрелки у number input */
+          &::-webkit-outer-spin-button,
+          &::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            appearance: none;
+            margin: 0;
+          }
+
+          &[type=number] {
+            -moz-appearance: textfield;
+            appearance: textfield;
+          }
+        }
+      }
+    }
+  }
+
+  .total {
+    border-top: 1px solid #e0e0e0;
+    padding-top: 16px;
+    margin-top: 24px;
+
+    .totalRow {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 18px;
+      font-weight: 600;
+
+      .totalPrice {
+        color: #52c41a;
+      }
+    }
+  }
+}
+
+// Адаптивность
+@media (max-width: 768px) {
+  .orderForm {
+    .productCard {
+      .productDetails {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+    }
+
+    .formFields {
+      .field {
+        .quantityControl {
+          justify-content: center;
+        }
+      }
+    }
+  }
+}

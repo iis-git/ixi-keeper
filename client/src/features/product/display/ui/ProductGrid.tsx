@@ -9,11 +9,13 @@ import styles from './ProductGrid.module.scss';
 interface ProductGridProps {
   onProductClick?: (product: Product) => void;
   selectedCategoryId?: number | null;
+  refreshTrigger?: number; // Триггер для принудительного обновления
 }
 
 export const ProductGrid: React.FC<ProductGridProps> = ({ 
   onProductClick, 
-  selectedCategoryId 
+  selectedCategoryId,
+  refreshTrigger 
 }) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -28,6 +30,12 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
   useEffect(() => {
     setCurrentCategory(selectedCategoryId || null);
   }, [selectedCategoryId]);
+
+  useEffect(() => {
+    if (refreshTrigger) {
+      fetchData();
+    }
+  }, [refreshTrigger]);
 
   const fetchData = async (): Promise<void> => {
     try {

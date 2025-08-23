@@ -1,0 +1,54 @@
+// Кастомные стили для модального окна
+.modal {
+  .ant-modal-content {
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .ant-modal-header {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 24px;
+    
+    .ant-modal-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #262626;
+    }
+  }
+
+  .ant-modal-body {
+    padding: 24px;
+  }
+
+  .ant-modal-footer {
+    border-top: 1px solid #f0f0f0;
+    padding: 10px 16px;
+    text-align: right;
+
+    .ant-btn {
+      margin-left: 8px;
+    }
+  }
+}
+
+// Темная тема (если понадобится)
+.modal.dark {
+  .ant-modal-content {
+    background-color: #1f1f1f;
+    color: #ffffff;
+  }
+
+  .ant-modal-header {
+    background-color: #1f1f1f;
+    border-bottom-color: #303030;
+    
+    .ant-modal-title {
+      color: #ffffff;
+    }
+  }
+
+  .ant-modal-footer {
+    background-color: #1f1f1f;
+    border-top-color: #303030;
+  }
+}

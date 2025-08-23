@@ -26,6 +26,88 @@ app.use((req, res, next) => {
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
+// Функция для расчета доступных порций составного товара
+function calculateAvailablePortions(ingredients) {
+  if (!ingredients || ingredients.length === 0) {
+    return 0;
+  }
+  
+  let minPortions = Infinity;
+  
+  for (const ingredient of ingredients) {
+    const availablePortions = Math.floor(ingredient.ingredientProduct.stock / ingredient.quantity);
+    minPortions = Math.min(minPortions, availablePortions);
+  }
+  
+  return minPortions === Infinity ? 0 : minPortions;
+}
+
+// Функция для управления остатками при изменении заказа
+async function updateStockForOrderChange(oldItems, newItems) {
+  console.log('Updating stock for order change:', { oldItems, newItems });
+  
+  // Создаем карты для сравнения количеств
+  const oldQuantities = {};
+  const newQuantities = {};
+  
+  // Заполняем карту старых количеств
+  oldItems.forEach(item => {
+    oldQuantities[item.productId] = (oldQuantities[item.productId] || 0) + item.quantity;
+  });
+  
+  // Заполняем карту новых количеств
+  newItems.forEach(item => {
+    newQuantities[item.productId] = (newQuantities[item.productId] || 0) + item.quantity;
+  });
+  
+  // Получаем все уникальные productId
+  const allProductIds = new Set([...Object.keys(oldQuantities), ...Object.keys(newQuantities)]);
+  
+  for (const productId of allProductIds) {
+    const oldQty = oldQuantities[productId] || 0;
+    const newQty = newQuantities[productId] || 0;
+    const difference = newQty - oldQty; // положительное = нужно списать, отрицательное = нужно вернуть
+    
+    if (difference !== 0) {
+      console.log(`Product ${productId}: old=${oldQty}, new=${newQty}, diff=${difference}`);
+      
+      // Получаем информацию о товаре
+      const product = await Product.findByPk(productId, {
+        include: [
+          {
+            model: ProductIngredient,
+            as: 'ingredients',
+            include: [{ model: Product, as: 'ingredientProduct' }]
+          }
+        ]
+      });
+      
+      if (!product) {
+        console.error(`Product ${productId} not found`);
+        continue;
+      }
+      
+      if (product.isComposite) {
+        // Для составных товаров управляем ингредиентами
+        for (const ingredient of product.ingredients) {
+          const stockChange = difference * ingredient.quantity;
+          await ingredient.ingredientProduct.update({
+            stock: ingredient.ingredientProduct.stock - stockChange
+          });
+          console.log(`Updated ingredient ${ingredient.ingredientProduct.name}: stock changed by ${-stockChange}`);
+        }
+      } else {
+        // Для обычных товаров управляем основным остатком
+        const stockChange = difference * product.unitSize;
+        await product.update({
+          stock: product.stock - stockChange
+        });
+        console.log(`Updated product ${product.name}: stock changed by ${-stockChange}`);
+      }
+    }
+  }
+}
+
 // Обработчики для пользователей
 app.post('/api/users', async (req, res) => {
   try {
@@ -348,29 +430,22 @@ app.delete('/api/products/:id/ingredients/:ingredientId', async (req, res) => {
 // Обработчики для заказов
 app.post('/api/orders', async (req, res) => {
   try {
-    const { userId, products, totalAmount, status } = req.body;
+    const { guestName, orderItems, totalAmount, status, paymentMethod, comment } = req.body;
     
     // Создаем заказ
     const order = await Order.create({
-      userId,
+      guestName,
+      orderItems,
       totalAmount,
-      status
+      status: status || 'active',
+      paymentMethod,
+      comment
     });
     
-    // Добавляем товары к заказу
-    if (products && products.length > 0) {
-      const orderProducts = products.map(product => ({
-        orderId: order.id,
-        productId: product.id,
-        quantity: product.quantity,
-        price: product.price
-      }));
-      
-      await OrderProduct.bulkCreate(orderProducts);
-      
-      // Списываем товары со склада
-      for (const product of products) {
-        const productData = await Product.findByPk(product.id, {
+    // Списываем товары со склада
+    if (orderItems && orderItems.length > 0) {
+      for (const item of orderItems) {
+        const productData = await Product.findByPk(item.productId, {
           include: [
             {
               model: ProductIngredient,
@@ -388,7 +463,7 @@ app.post('/api/orders', async (req, res) => {
         if (productData.isComposite && productData.ingredients && productData.ingredients.length > 0) {
           // Для составных товаров списываем ингредиенты
           for (const ingredient of productData.ingredients) {
-            const totalQuantityToDeduct = ingredient.quantity * product.quantity;
+            const totalQuantityToDeduct = ingredient.quantity * item.quantity;
             await Product.decrement('stock', {
               by: totalQuantityToDeduct,
               where: { id: ingredient.ingredientProductId }
@@ -396,38 +471,16 @@ app.post('/api/orders', async (req, res) => {
           }
         } else {
           // Для обычных товаров списываем согласно unitSize
-          const totalQuantityToDeduct = productData.unitSize * product.quantity;
+          const totalQuantityToDeduct = productData.unitSize * item.quantity;
           await Product.decrement('stock', {
             by: totalQuantityToDeduct,
-            where: { id: product.id }
+            where: { id: item.productId }
           });
         }
       }
-      
-      // Обновляем статистику пользователя
-      const user = await User.findByPk(userId);
-      if (user) {
-        const newTotalOrdersAmount = user.totalOrdersAmount + totalAmount;
-        const newVisitCount = user.visitCount + 1;
-        const newAverageCheck = newTotalOrdersAmount / newVisitCount;
-        
-        await user.update({
-          totalOrdersAmount: newTotalOrdersAmount,
-          visitCount: newVisitCount,
-          averageCheck: newAverageCheck
-        });
-      }
     }
     
-    // Возвращаем созданный заказ с товарами
-    const createdOrder = await Order.findByPk(order.id, {
-      include: [
-        { model: User, as: 'user' },
-        { model: Product, as: 'products' }
-      ]
-    });
-    
-    res.status(201).json(createdOrder);
+    res.status(201).json(order);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -435,11 +488,12 @@ app.post('/api/orders', async (req, res) => {
 
 app.get('/api/orders', async (req, res) => {
   try {
+    const { status } = req.query;
+    const whereClause = status ? { status } : {};
+    
     const orders = await Order.findAll({
-      include: [
-        { model: User, as: 'user' },
-        { model: Product, as: 'products' }
-      ]
+      where: whereClause,
+      order: [['createdAt', 'DESC']]
     });
     res.json(orders);
   } catch (error) {
@@ -450,12 +504,7 @@ app.get('/api/orders', async (req, res) => {
 app.get('/api/orders/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const order = await Order.findByPk(id, {
-      include: [
-        { model: User, as: 'user' },
-        { model: Product, as: 'products' }
-      ]
-    });
+    const order = await Order.findByPk(id);
     
     if (order) {
       res.json(order);
@@ -470,23 +519,231 @@ app.get('/api/orders/:id', async (req, res) => {
 app.put('/api/orders/:id', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
-    const { status } = req.body;
+    const updateData = req.body;
     
-    const [updated] = await Order.update({ status }, {
-      where: { id: id }
+    // Если статус меняется на completed или cancelled, устанавливаем closedAt
+    if (updateData.status && (updateData.status === 'completed' || updateData.status === 'cancelled')) {
+      updateData.closedAt = new Date();
+    }
+    
+    const order = await Order.findByPk(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Заказ не найден' });
+    }
+    
+    // Если обновляются orderItems, пересчитываем общую сумму и управляем остатками
+    if (updateData.orderItems) {
+      const totalAmount = updateData.orderItems.reduce((sum, item) => 
+        sum + (Number(item.price) * Number(item.quantity)), 0
+      );
+      updateData.totalAmount = totalAmount;
+      
+      console.log('Updating order with new items:', {
+        orderId: id,
+        orderItems: updateData.orderItems,
+        totalAmount: updateData.totalAmount
+      });
+
+      // Управляем остатками товаров при изменении заказа
+      await updateStockForOrderChange(order.orderItems, updateData.orderItems);
+    }
+    
+    // Обновляем заказ с принудительным сохранением JSON полей
+    if (updateData.orderItems) {
+      order.orderItems = updateData.orderItems;
+      order.totalAmount = updateData.totalAmount;
+      order.changed('orderItems', true);
+    }
+    
+    // Обновляем остальные поля
+    Object.keys(updateData).forEach(key => {
+      if (key !== 'orderItems') {
+        order[key] = updateData[key];
+      }
     });
     
-    if (updated) {
-      const updatedOrder = await Order.findByPk(id, {
-        include: [
-          { model: User, as: 'user' },
-          { model: Product, as: 'products' }
-        ]
-      });
-      res.json(updatedOrder);
-    } else {
-      res.status(404).json({ message: 'Заказ не найден' });
+    await order.save();
+    
+    res.json(order);
+  } catch (error) {
+    console.error('Error updating order:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Удаление позиции из заказа
+app.put('/api/orders/:id/remove-item', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { itemIndex } = req.body;
+    
+    const order = await Order.findByPk(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Заказ не найден' });
     }
+
+    if (order.status !== 'active') {
+      return res.status(400).json({ message: 'Можно удалять позиции только из активных заказов' });
+    }
+
+    const orderItems = [...order.orderItems];
+    if (itemIndex < 0 || itemIndex >= orderItems.length) {
+      return res.status(400).json({ message: 'Неверный индекс позиции' });
+    }
+
+    // Удаляем позицию
+    const removedItem = orderItems.splice(itemIndex, 1)[0];
+    
+    // Пересчитываем общую сумму
+    const newTotalAmount = orderItems.reduce((sum, item) => 
+      sum + (Number(item.price) * item.quantity), 0
+    );
+
+    // Если все позиции удалены, отменяем заказ
+    if (orderItems.length === 0) {
+      await order.update({
+        status: 'cancelled',
+        comment: 'Заказ отменен - все позиции удалены',
+        closedAt: new Date(),
+        orderItems: [],
+        totalAmount: 0
+      });
+    } else {
+      await order.update({
+        orderItems,
+        totalAmount: newTotalAmount
+      });
+    }
+
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Добавление товара к заказу
+app.put('/api/orders/:id/add-item', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { productId, quantity = 1 } = req.body;
+    
+    const order = await Order.findByPk(id);
+    if (!order) {
+      return res.status(404).json({ message: 'Заказ не найден' });
+    }
+
+    if (order.status !== 'active') {
+      return res.status(400).json({ message: 'Можно добавлять позиции только к активным заказам' });
+    }
+
+    // Получаем информацию о товаре
+    const product = await Product.findByPk(productId, {
+      include: [{ model: Category, as: 'category' }]
+    });
+    
+    if (!product) {
+      return res.status(404).json({ message: 'Товар не найден' });
+    }
+
+    if (!product.isActive) {
+      return res.status(400).json({ message: 'Товар неактивен' });
+    }
+
+    // Проверяем доступность товара
+    if (product.isComposite) {
+      // Для составных товаров проверяем доступные порции
+      const availablePortions = await calculateAvailablePortions(product);
+      if (availablePortions < quantity) {
+        return res.status(400).json({ 
+          message: `Недостаточно ингредиентов. Доступно порций: ${availablePortions}` 
+        });
+      }
+    } else {
+      // Для обычных товаров проверяем остатки
+      if (product.stock < quantity * product.unitSize) {
+        return res.status(400).json({ 
+          message: `Недостаточно товара на складе. Доступно: ${product.stock} ${product.unit}` 
+        });
+      }
+    }
+
+    const orderItems = [...order.orderItems];
+    
+    // Проверяем, есть ли уже такой товар в заказе
+    const existingItemIndex = orderItems.findIndex(item => {
+      console.log('Comparing:', item.productId, 'with', productId, 'types:', typeof item.productId, typeof productId);
+      return Number(item.productId) === Number(productId);
+    });
+    
+    console.log('Adding item to order:', {
+      orderId: order.id,
+      productId,
+      quantity,
+      existingItemIndex,
+      currentItems: orderItems
+    });
+    
+    if (existingItemIndex >= 0) {
+      // Увеличиваем количество существующей позиции
+      const currentQuantity = Number(orderItems[existingItemIndex].quantity);
+      orderItems[existingItemIndex].quantity = currentQuantity + Number(quantity);
+      console.log('Updated existing item quantity:', orderItems[existingItemIndex].quantity);
+    } else {
+      // Добавляем новую позицию
+      orderItems.push({
+        productId: product.id,
+        productName: product.name,
+        quantity: Number(quantity),
+        price: Number(product.price)
+      });
+      console.log('Added new item to order');
+    }
+
+    // Списываем товары
+    if (product.isComposite) {
+      // Списываем ингредиенты для составного товара
+      const ingredients = await ProductIngredient.findAll({
+        where: { compositeProductId: product.id },
+        include: [{ model: Product, as: 'ingredientProduct' }]
+      });
+
+      for (const ingredient of ingredients) {
+        const requiredAmount = ingredient.quantity * quantity;
+        await ingredient.ingredientProduct.update({
+          stock: ingredient.ingredientProduct.stock - requiredAmount
+        });
+      }
+    } else {
+      // Списываем обычный товар
+      await product.update({
+        stock: product.stock - (quantity * product.unitSize)
+      });
+    }
+
+    // Пересчитываем общую сумму
+    const newTotalAmount = orderItems.reduce((sum, item) => 
+      sum + (Number(item.price) * item.quantity), 0
+    );
+
+    // Обновляем заказ с принудительным обновлением JSON поля
+    await order.update({
+      orderItems: orderItems,
+      totalAmount: newTotalAmount
+    }, {
+      fields: ['orderItems', 'totalAmount']
+    });
+    
+    // Принудительно помечаем поле как измененное
+    order.changed('orderItems', true);
+    await order.save();
+    
+    console.log('Order updated successfully:', {
+      orderId: order.id,
+      newOrderItems: orderItems,
+      newTotalAmount: newTotalAmount
+    });
+
+    res.json(order);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

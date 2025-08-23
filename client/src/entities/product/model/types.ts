@@ -13,6 +13,7 @@ export interface Product {
   isComposite: boolean;
   ingredients?: ProductIngredient[];
   calculatedStock?: number;
+  availablePortions?: number;
   createdAt: string;
   updatedAt: string;
 }

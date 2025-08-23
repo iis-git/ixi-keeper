@@ -9,6 +9,7 @@
     "lint": "eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "antd": "^5.27.1",
     "axios": "^1.6.0",
     "next": "14.0.4",
     "react": "^18",
