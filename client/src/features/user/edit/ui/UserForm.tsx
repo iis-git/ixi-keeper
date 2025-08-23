@@ -17,6 +17,8 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
   const [formData, setFormData] = useState<Partial<User>>(initialData || {
     name: '',
     phone: '',
+    comment: '',
+    isDebtor: false,
     totalOrdersAmount: 0,
     visitCount: 0,
     averageCheck: 0
@@ -43,11 +45,12 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>): void => {
-    const { name, value } = e.target;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
+    const { name, value, type } = e.target;
     setFormData({
       ...formData,
-      [name]: name === 'name' || name === 'phone' ? value : Number(value)
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : 
+             (name === 'name' || name === 'phone' || name === 'comment') ? value : Number(value)
     });
   };
 
@@ -95,10 +98,32 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
           type="tel"
           id="phone"
           name="phone"
-          value={formData.phone}
+          value={formData.phone || ''}
           onChange={handleChange}
-          required
         />
+      </div>
+      
+      <div className={styles.formGroup}>
+        <label htmlFor="comment">Комментарий</label>
+        <textarea
+          id="comment"
+          name="comment"
+          value={formData.comment || ''}
+          onChange={handleChange}
+          rows={3}
+        />
+      </div>
+      
+      <div className={styles.formGroup}>
+        <label className={styles.checkboxLabel}>
+          <input
+            type="checkbox"
+            name="isDebtor"
+            checked={formData.isDebtor || false}
+            onChange={handleChange}
+          />
+          Должник
+        </label>
       </div>
       
       <div className={styles.formGroup}>

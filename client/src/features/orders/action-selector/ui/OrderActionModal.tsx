@@ -7,7 +7,6 @@ interface OrderActionModalProps {
   product: Product | null;
   open: boolean;
   onCancel: () => void;
-  onCreateAnonymous: () => void;
   onCreateWithGuest: () => void;
   onAddToActive: () => void;
 }
@@ -16,7 +15,6 @@ export const OrderActionModal: React.FC<OrderActionModalProps> = ({
   product,
   open,
   onCancel,
-  onCreateAnonymous,
   onCreateWithGuest,
   onAddToActive
 }) => {
@@ -58,21 +56,11 @@ export const OrderActionModal: React.FC<OrderActionModalProps> = ({
         {/* Кнопки действий */}
         <div className={styles.actions}>
           <button 
-            className={`${styles.actionButton} ${styles.anonymous}`}
-            onClick={onCreateAnonymous}
-          >
-            <div className={styles.buttonContent}>
-              <span className={styles.buttonTitle}>Создать "Ноунэйм"</span>
-              <span className={styles.buttonDescription}>Быстрый заказ без имени гостя</span>
-            </div>
-          </button>
-
-          <button 
             className={`${styles.actionButton} ${styles.withGuest}`}
             onClick={onCreateWithGuest}
           >
             <div className={styles.buttonContent}>
-              <span className={styles.buttonTitle}>Создать с гостем</span>
+              <span className={styles.buttonTitle}>Создать новый заказ</span>
               <span className={styles.buttonDescription}>Новый заказ с указанием имени</span>
             </div>
           </button>

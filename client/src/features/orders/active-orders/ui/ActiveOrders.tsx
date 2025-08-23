@@ -35,6 +35,14 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
     try {
       const response = await orderApi.getActive();
       setActiveOrders(response.data);
+      
+      // Проверяем, есть ли открытый заказ среди активных
+      if (openOrderId && !response.data.find(order => order.id === openOrderId)) {
+        console.log('Открытый заказ больше не активен, сбрасываем openOrderId');
+        onOrderToggle?.(null);
+        setExpandedOrders(new Set());
+      }
+      
       setError(null);
     } catch (err) {
       setError('Ошибка при загрузке активных заказов');

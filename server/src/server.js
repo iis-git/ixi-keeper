@@ -42,6 +42,34 @@ function calculateAvailablePortions(ingredients) {
   return minPortions === Infinity ? 0 : minPortions;
 }
 
+// Функция для обновления статистики пользователя
+async function updateUserStatistics(userId, orderAmount) {
+  try {
+    const user = await User.findByPk(userId);
+    if (!user) return;
+
+    // Принудительно преобразуем в числа для корректного сложения
+    const currentTotal = parseFloat(user.totalOrdersAmount) || 0;
+    const currentVisits = parseInt(user.visitCount) || 0;
+    const amount = parseFloat(orderAmount) || 0;
+
+    const newVisitCount = currentVisits + 1;
+    const newTotalAmount = currentTotal + amount;
+    const newAverageCheck = newTotalAmount / newVisitCount;
+
+    await user.update({
+      visitCount: newVisitCount,
+      totalOrdersAmount: newTotalAmount,
+      averageCheck: newAverageCheck
+    });
+
+    console.log(`Updated user ${userId} statistics: visits=${newVisitCount}, total=${newTotalAmount}, avg=${newAverageCheck}`);
+    console.log(`Debug: currentTotal=${currentTotal}, amount=${amount}, result=${newTotalAmount}`);
+  } catch (error) {
+    console.error('Error updating user statistics:', error);
+  }
+}
+
 // Функция для управления остатками при изменении заказа
 async function updateStockForOrderChange(oldItems, newItems) {
   console.log('Updating stock for order change:', { oldItems, newItems });
@@ -430,17 +458,41 @@ app.delete('/api/products/:id/ingredients/:ingredientId', async (req, res) => {
 // Обработчики для заказов
 app.post('/api/orders', async (req, res) => {
   try {
-    const { guestName, orderItems, totalAmount, status, paymentMethod, comment } = req.body;
+    const { guestName, guestId, orderItems, totalAmount, status, paymentMethod, comment } = req.body;
+    
+    let userId = guestId;
+    
+    // Если указано имя гостя, но нет ID, создаем или находим пользователя
+    if (guestName && guestName.trim() && !guestId) {
+      // Ищем существующего пользователя по имени
+      let user = await User.findOne({ where: { name: guestName.trim() } });
+      
+      if (!user) {
+        // Создаем нового пользователя
+        user = await User.create({
+          name: guestName.trim(),
+          visitCount: 0,
+          totalOrdersAmount: 0,
+          averageCheck: 0
+        });
+        console.log(`Created new user: ${user.name} with ID: ${user.id}`);
+      }
+      
+      userId = user.id;
+    }
     
     // Создаем заказ
     const order = await Order.create({
-      guestName,
+      guestName: guestName?.trim() || null,
+      userId: userId,
       orderItems,
       totalAmount,
       status: status || 'active',
       paymentMethod,
       comment
     });
+    
+    // Статистика пользователя обновляется только при закрытии заказа, не при создании
     
     // Списываем товары со склада
     if (orderItems && orderItems.length > 0) {
@@ -521,14 +573,19 @@ app.put('/api/orders/:id', async (req, res) => {
     const id = parseInt(req.params.id);
     const updateData = req.body;
     
-    // Если статус меняется на completed или cancelled, устанавливаем closedAt
-    if (updateData.status && (updateData.status === 'completed' || updateData.status === 'cancelled')) {
-      updateData.closedAt = new Date();
-    }
-    
     const order = await Order.findByPk(id);
     if (!order) {
       return res.status(404).json({ message: 'Заказ не найден' });
+    }
+    
+    // Если статус меняется на completed или cancelled, устанавливаем closedAt
+    if (updateData.status && (updateData.status === 'completed' || updateData.status === 'cancelled')) {
+      updateData.closedAt = new Date();
+      
+      // Обновляем статистику пользователя при закрытии заказа
+      if (updateData.status === 'completed' && order.userId) {
+        await updateUserStatistics(order.userId, order.totalAmount);
+      }
     }
     
     // Если обновляются orderItems, пересчитываем общую сумму и управляем остатками
@@ -593,6 +650,9 @@ app.put('/api/orders/:id/remove-item', async (req, res) => {
 
     // Удаляем позицию
     const removedItem = orderItems.splice(itemIndex, 1)[0];
+    
+    // Возвращаем остатки удаленной позиции
+    await updateStockForOrderChange([removedItem], []);
     
     // Пересчитываем общую сумму
     const newTotalAmount = orderItems.reduce((sum, item) => 

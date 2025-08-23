@@ -50,14 +50,24 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         if (onOrderUpdate) {
           onOrderUpdate();
         }
+        
+        return;
       } catch (error: any) {
         console.error('Ошибка при добавлении товара к заказу:', error);
-        alert(error.response?.data?.message || 'Ошибка при добавлении товара к заказу');
+        
+        // Если заказ не найден (404) - сбрасываем openOrderId
+        if (error.response?.status === 404) {
+          console.log('Активный заказ не найден, сбрасываем openOrderId');
+          if (onOrderUpdate) {
+            onOrderUpdate(); // Это обновит состояние и сбросит openOrderId
+          }
+        } else {
+          alert(error.response?.data?.message || 'Ошибка при добавлении товара к заказу');
+          return;
+        }
       } finally {
         setIsLoading(false);
-        setSelectedProduct(null);
       }
-      return;
     }
     
     // Иначе показываем модалку выбора действия
@@ -80,18 +90,37 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     setSelectedProduct(null);
   };
 
-  const handleCreateOrder = (orderData: any) => {
-    console.log('Создание заказа:', orderData);
-    // Здесь будет логика создания заказа
-    setIsCreateModalOpen(false);
-    setSelectedProduct(null);
+  const handleCreateOrder = async (orderData: any) => {
+    try {
+      // Создаем заказ через API
+      const totalAmount = Number(orderData.product.price) * orderData.quantity;
+      const newOrder = await orderApi.create({
+        guestName: orderData.guestName,
+        comment: orderData.comment,
+        totalAmount: totalAmount,
+        orderItems: [{
+          productId: orderData.product.id,
+          productName: orderData.product.name,
+          price: orderData.product.price,
+          quantity: orderData.quantity
+        }]
+      });
+      
+      console.log('Заказ создан:', newOrder);
+      
+      // Обновляем список заказов
+      if (onOrderUpdate) {
+        onOrderUpdate();
+      }
+      
+      setIsCreateModalOpen(false);
+      setSelectedProduct(null);
+    } catch (error) {
+      console.error('Ошибка создания заказа:', error);
+      alert('Ошибка при создании заказа');
+    }
   };
 
-  const handleCreateAnonymous = () => {
-    console.log('Создать ноунэйм заказ');
-    setIsActionModalOpen(false);
-    setSelectedProduct(null);
-  };
 
   const handleCreateWithGuest = () => {
     console.log('Создать заказ с гостем');
@@ -107,18 +136,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
   return (
     <div className={`${styles.productSelectorContainer} ${className || ''}`}>
-      {showHeader && (
-        <div className={styles.header}>
-          <h1>{headerTitle}</h1>
-          {showManageButton && (
-            <div className={styles.headerActions}>
-              <a href={manageButtonLink} className={styles.manageButton}>
-                {manageButtonText}
-              </a>
-            </div>
-          )}
-        </div>
-      )}
+     
 
       <ProductGrid onProductClick={handleProductClick} refreshTrigger={refreshTrigger} />
       
@@ -126,7 +144,6 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         product={selectedProduct}
         open={isActionModalOpen}
         onCancel={handleActionModalClose}
-        onCreateAnonymous={handleCreateAnonymous}
         onCreateWithGuest={handleCreateWithGuest}
         onAddToActive={handleAddToActive}
       />

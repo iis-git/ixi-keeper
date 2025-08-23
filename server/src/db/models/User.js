@@ -23,7 +23,15 @@ module.exports = (sequelize, DataTypes) => {
     },
     phone: {
       type: DataTypes.STRING,
-      allowNull: false,
+      allowNull: true,
+    },
+    comment: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+    },
+    isDebtor: {
+      type: DataTypes.BOOLEAN,
+      defaultValue: false,
     },
     totalOrdersAmount: {
       type: DataTypes.FLOAT,

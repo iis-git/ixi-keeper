@@ -1,7 +1,11 @@
-import React, { useState } from 'react';
-import { Modal } from '../../../../shared/ui';
+import React, { useState, useEffect } from 'react';
+import { Modal, Input, Button } from 'antd';
+import { userApi } from '../../../../shared/api/user';
 import type { Product } from '../../../../entities/product/model/types';
+import type { User } from '../../../../shared/types/model';
 import styles from './CreateOrderModal.module.scss';
+
+const { TextArea } = Input;
 
 interface CreateOrderModalProps {
   product: Product | null;
@@ -13,6 +17,7 @@ interface CreateOrderModalProps {
 interface OrderData {
   product: Product;
   quantity: number;
+  guestId?: number;
   guestName: string;
   comment?: string;
 }
@@ -23,37 +28,89 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   onCancel,
   onCreateOrder
 }) => {
-  const [quantity, setQuantity] = useState(1);
+  const [selectedGuest, setSelectedGuest] = useState<User | null>(null);
   const [guestName, setGuestName] = useState('');
   const [comment, setComment] = useState('');
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Загрузка пользователей при открытии модалки
+  useEffect(() => {
+    if (open) {
+      fetchUsers();
+    }
+  }, [open]);
+
+  // Фильтрация пользователей по поисковому запросу
+  useEffect(() => {
+    if (searchQuery.trim()) {
+      const filtered = users.filter(user => 
+        user.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setFilteredUsers(filtered);
+    } else {
+      setFilteredUsers(users);
+    }
+  }, [users, searchQuery]);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await userApi.getAll();
+      setUsers(response.data);
+      setFilteredUsers(response.data);
+    } catch (error) {
+      console.error('Ошибка загрузки пользователей:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGuestSelect = (user: User) => {
+    setSelectedGuest(user);
+    setGuestName(user.name);
+    setSearchQuery('');
+  };
+
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+    setGuestName(value);
+    setSelectedGuest(null);
+  };
 
   const handleSubmit = () => {
-    if (!product || !guestName.trim()) return;
+    if (!product) return;
 
     onCreateOrder({
       product,
-      quantity,
-      guestName: guestName.trim(),
+      quantity: 1,
+      guestId: selectedGuest?.id,
+      guestName: guestName.trim() || '',
       comment: comment.trim() || undefined
     });
 
     // Сброс формы
-    setQuantity(1);
     setGuestName('');
     setComment('');
+    setSelectedGuest(null);
+    setSearchQuery('');
   };
 
   const handleCancel = () => {
     // Сброс формы при отмене
-    setQuantity(1);
     setGuestName('');
     setComment('');
+    setSelectedGuest(null);
+    setSearchQuery('');
     onCancel();
   };
 
   if (!product) return null;
 
-  const totalPrice = parseFloat(product.price.toString()) * quantity;
+  const totalPrice = parseFloat(product.price.toString());
   const availableQuantity = product.isComposite 
     ? product.availablePortions || 0 
     : parseFloat(product.stock?.toString() || '0');
@@ -68,7 +125,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       cancelText="Отмена"
       width={600}
       okButtonProps={{
-        disabled: !guestName.trim() || quantity <= 0 || quantity > availableQuantity
+        disabled: availableQuantity <= 0
       }}
     >
       <div className={styles.orderForm}>
@@ -106,56 +163,61 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         {/* Форма заказа */}
         <div className={styles.formFields}>
           <div className={styles.field}>
-            <label htmlFor="guestName">Имя гостя *</label>
-            <input
-              id="guestName"
-              type="text"
-              value={guestName}
-              onChange={(e) => setGuestName(e.target.value)}
-              placeholder="Введите имя гостя"
-              className={styles.input}
-            />
-          </div>
-
-          <div className={styles.field}>
-            <label htmlFor="quantity">Количество *</label>
-            <div className={styles.quantityControl}>
-              <button
-                type="button"
-                onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                disabled={quantity <= 1}
-                className={styles.quantityBtn}
-              >
-                -
-              </button>
-              <input
-                id="quantity"
-                type="number"
-                value={quantity}
-                onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                min="1"
-                max={availableQuantity}
-                className={styles.quantityInput}
+            <label htmlFor="guestSearch">Выбор гостя</label>
+            <div className={styles.guestSelector}>
+              <Input
+                id="guestSearch"
+                value={searchQuery || guestName}
+                onChange={handleSearchChange}
+                placeholder="Поиск по имени гостя..."
               />
-              <button
-                type="button"
-                onClick={() => setQuantity(Math.min(availableQuantity, quantity + 1))}
-                disabled={quantity >= availableQuantity}
-                className={styles.quantityBtn}
-              >
-                +
-              </button>
+              
+              {searchQuery && filteredUsers.length > 0 && (
+                <div className={styles.guestDropdown}>
+                  {loading ? (
+                    <div className={styles.loading}>Загрузка...</div>
+                  ) : (
+                    filteredUsers.map(user => (
+                      <div
+                        key={user.id}
+                        className={styles.guestOption}
+                        onClick={() => handleGuestSelect(user)}
+                      >
+                        <span className={styles.guestName}>{user.name}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+              
+              {selectedGuest && (
+                <div className={styles.selectedGuest}>
+                  <span>Выбран: {selectedGuest.name}</span>
+                  <Button
+                    type="text"
+                    size="small"
+                    onClick={() => {
+                      setSelectedGuest(null);
+                      setGuestName('');
+                      setSearchQuery('');
+                    }}
+                    className={styles.clearButton}
+                  >
+                    ✕
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
 
+
           <div className={styles.field}>
             <label htmlFor="comment">Комментарий</label>
-            <textarea
+            <TextArea
               id="comment"
               value={comment}
               onChange={(e) => setComment(e.target.value)}
               placeholder="Дополнительные пожелания..."
-              className={styles.textarea}
               rows={3}
             />
           </div>
@@ -164,7 +226,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
         {/* Итого */}
         <div className={styles.total}>
           <div className={styles.totalRow}>
-            <span>Итого:</span>
+            <span>Цена за единицу:</span>
             <span className={styles.totalPrice}>{totalPrice.toFixed(2)} ₽</span>
           </div>
         </div>

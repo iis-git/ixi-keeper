@@ -29,11 +29,77 @@
 .filterGroup {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
 
   label {
     font-weight: 500;
-    color: #555;
+    color: #333;
+    white-space: nowrap;
+  }
+}
+
+.statusButtons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.statusBtn {
+  padding: 6px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 4px;
+  background: white;
+  color: #666;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #40a9ff;
+    color: #1890ff;
+  }
+
+  &.active {
+    background: #1890ff;
+    border-color: #1890ff;
+    color: white;
+  }
+
+  &.activeBtn {
+    &:hover {
+      border-color: #52c41a;
+      color: #52c41a;
+    }
+
+    &.active {
+      background: #52c41a;
+      border-color: #52c41a;
+    }
+  }
+
+  &.completedBtn {
+    &:hover {
+      border-color: #1890ff;
+      color: #1890ff;
+    }
+
+    &.active {
+      background: #1890ff;
+      border-color: #1890ff;
+    }
+  }
+
+  &.cancelledBtn {
+    &:hover {
+      border-color: #ff4d4f;
+      color: #ff4d4f;
+    }
+
+    &.active {
+      background: #ff4d4f;
+      border-color: #ff4d4f;
+    }
   }
 }
 
@@ -96,6 +162,7 @@
     padding: 12px;
     border-bottom: 1px solid #e9ecef;
     vertical-align: middle;
+    color: #000;
   }
 
   tr:hover {
@@ -137,7 +204,8 @@
 
 .actions {
   display: flex;
-  gap: 5px;
+  gap: 8px;
+  align-items: center;
 }
 
 .actionBtn {
@@ -148,10 +216,23 @@
   cursor: pointer;
   font-size: 14px;
   font-weight: bold;
-  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 
   &:hover {
-    transform: scale(1.1);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  &.viewBtn {
+    background: #2196f3;
+    color: white;
+
+    &:hover {
+      background: #1976d2;
+    }
   }
 
   &.completeBtn {

@@ -1,7 +1,9 @@
 export interface User {
   id: number;
   name: string;
-  phone: string;
+  phone?: string;
+  comment?: string;
+  isDebtor?: boolean;
   totalOrdersAmount: number;
   visitCount: number;
   averageCheck: number;

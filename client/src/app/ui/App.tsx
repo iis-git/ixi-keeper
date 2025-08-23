@@ -18,7 +18,7 @@ const App: React.FC = () => {
     <Router>
       <div className={styles.app}>
         <header className={styles.header}>
-          <h1>Ixi-Keeper</h1>
+          <h1>STILL-PAY</h1>
           <nav>
             <ul>
               <li><Link to="/">Главная</Link></li>

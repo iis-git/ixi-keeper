@@ -25,9 +25,33 @@
   transition: border-color 0.3s;
 }
 
-.formGroup input:focus {
+.formGroup input:focus,
+.formGroup textarea:focus {
   border-color: #646cff;
   outline: none;
+}
+
+.formGroup textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.3s;
+}
+
+.checkboxLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkboxLabel input[type="checkbox"] {
+  width: auto;
+  margin: 0;
 }
 
 .formActions {
@@ -91,7 +115,8 @@
     color: #f1f1f1;
   }
   
-  .formGroup input {
+  .formGroup input,
+  .formGroup textarea {
     background-color: #333;
     border-color: #444;
     color: #f1f1f1;

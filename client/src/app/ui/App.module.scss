@@ -12,12 +12,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 20px 0;
-  border-bottom: 1px solid #e0e0e0;
+  padding: 10px 0;
 
   h1 {
     margin: 0 0 20px 0;
-    color: #646cff;
+    font-size: 19px;
+    margin-bottom: 0;
+    background: linear-gradient(90deg, rgba(105, 0, 252, 1) 0%, rgba(255, 229, 0, 1) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text; /* для совместимости */
+  color: transparent;
   }
 
   nav ul {
@@ -41,7 +46,6 @@
 
 .content {
   flex: 1;
-  padding: 20px 0;
 }
 
 .footer {

@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { EyeOutlined } from '@ant-design/icons';
 import { orderApi, Order } from '../../../shared/api/order';
+import { ViewOrderModal } from '../../../features/orders/view-order';
 import styles from './OrdersPage.module.scss';
 
 const OrdersPage: React.FC = () => {
@@ -9,6 +11,8 @@ const OrdersPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
 
   useEffect(() => {
     fetchOrders();
@@ -103,6 +107,16 @@ const OrdersPage: React.FC = () => {
     return method ? methodMap[method as keyof typeof methodMap] || method : '—';
   };
 
+  const handleViewOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setIsViewModalOpen(true);
+  };
+
+  const handleCloseViewModal = () => {
+    setSelectedOrder(null);
+    setIsViewModalOpen(false);
+  };
+
   if (loading) return <div className={styles.loading}>Загрузка заказов...</div>;
   if (error) return <div className={styles.error}>{error}</div>;
 
@@ -112,18 +126,33 @@ const OrdersPage: React.FC = () => {
         <h1>Все заказы</h1>
         <div className={styles.controls}>
           <div className={styles.filterGroup}>
-            <label htmlFor="statusFilter">Статус:</label>
-            <select
-              id="statusFilter"
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className={styles.select}
-            >
-              <option value="all">Все</option>
-              <option value="active">Активные</option>
-              <option value="completed">Завершенные</option>
-              <option value="cancelled">Отмененные</option>
-            </select>
+            <label>Статус:</label>
+            <div className={styles.statusButtons}>
+              <button
+                className={`${styles.statusBtn} ${statusFilter === 'all' ? styles.active : ''}`}
+                onClick={() => setStatusFilter('all')}
+              >
+                Все
+              </button>
+              <button
+                className={`${styles.statusBtn} ${styles.activeBtn} ${statusFilter === 'active' ? styles.active : ''}`}
+                onClick={() => setStatusFilter('active')}
+              >
+                Активные
+              </button>
+              <button
+                className={`${styles.statusBtn} ${styles.completedBtn} ${statusFilter === 'completed' ? styles.active : ''}`}
+                onClick={() => setStatusFilter('completed')}
+              >
+                Завершенные
+              </button>
+              <button
+                className={`${styles.statusBtn} ${styles.cancelledBtn} ${statusFilter === 'cancelled' ? styles.active : ''}`}
+                onClick={() => setStatusFilter('cancelled')}
+              >
+                Отмененные
+              </button>
+            </div>
           </div>
           
           <div className={styles.searchGroup}>
@@ -179,24 +208,33 @@ const OrdersPage: React.FC = () => {
                     ) : '—'}
                   </td>
                   <td>
-                    {order.status === 'active' && (
-                      <div className={styles.actions}>
-                        <button
-                          onClick={() => handleStatusChange(order.id, 'completed')}
-                          className={`${styles.actionBtn} ${styles.completeBtn}`}
-                          title="Завершить заказ"
-                        >
-                          ✓
-                        </button>
-                        <button
-                          onClick={() => handleStatusChange(order.id, 'cancelled')}
-                          className={`${styles.actionBtn} ${styles.cancelBtn}`}
-                          title="Отменить заказ"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    )}
+                    <div className={styles.actions}>
+                      <button
+                        className={`${styles.actionBtn} ${styles.viewBtn}`}
+                        onClick={() => handleViewOrder(order)}
+                        title="Просмотреть заказ"
+                      >
+                        <EyeOutlined />
+                      </button>
+                      {order.status === 'active' && (
+                        <>
+                          <button
+                            onClick={() => handleStatusChange(order.id, 'completed')}
+                            className={`${styles.actionBtn} ${styles.completeBtn}`}
+                            title="Завершить заказ"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            onClick={() => handleStatusChange(order.id, 'cancelled')}
+                            className={`${styles.actionBtn} ${styles.cancelBtn}`}
+                            title="Отменить заказ"
+                          >
+                            ✕
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))
@@ -215,6 +253,13 @@ const OrdersPage: React.FC = () => {
           </p>
         )}
       </div>
+
+      {/* Модалка просмотра заказа */}
+      <ViewOrderModal
+        order={selectedOrder}
+        open={isViewModalOpen}
+        onCancel={handleCloseViewModal}
+      />
     </div>
   );
 };

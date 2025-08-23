@@ -61,14 +61,13 @@
 
   .formFields {
     .field {
-      margin-bottom: 16px;
+      margin-bottom: 20px;
 
       label {
         display: block;
-        margin-bottom: 6px;
+        margin-bottom: 8px;
         font-weight: 500;
-        color: #262626;
-        font-size: 14px;
+        color: #333;
       }
 
       .input {
@@ -170,6 +169,79 @@
           }
         }
       }
+    }
+
+    .guestSelector {
+      position: relative;
+    }
+
+    .guestDropdown {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #d9d9d9;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      max-height: 200px;
+      overflow-y: auto;
+      z-index: 1000;
+    }
+
+    .guestOption {
+      padding: 12px 16px;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background-color 0.2s;
+
+      &:hover {
+        background-color: #f5f5f5;
+      }
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    .guestName {
+      display: block;
+      font-weight: 500;
+      color: #333;
+    }
+
+    .selectedGuest {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+      padding: 8px 12px;
+      background-color: #f6ffed;
+      border: 1px solid #b7eb8f;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #52c41a;
+    }
+
+    .clearButton {
+      background: none;
+      border: none;
+      color: #ff4d4f;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 0;
+      margin-left: 8px;
+      
+      &:hover {
+        color: #ff7875;
+      }
+    }
+
+    .loading {
+      padding: 12px 16px;
+      text-align: center;
+      color: #666;
+      font-style: italic;
     }
   }
 
