@@ -7,6 +7,7 @@ const port = process.env.PORT || 3020;
 
 // Импортируем модели
 const { User, Product, Order, OrderProduct, Category, ProductIngredient } = require('./db/models');
+const { Op } = require('sequelize');
 
 // Добавляем CORS middleware для обработки запросов с клиента
 app.use((req, res, next) => {
@@ -28,7 +29,7 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 // Функция для расчета доступных порций составного товара
 function calculateAvailablePortions(ingredients) {
-  if (!ingredients || ingredients.length === 0) {
+  if (!ingredients || !Array.isArray(ingredients) || ingredients.length === 0) {
     return 0;
   }
   
@@ -115,7 +116,7 @@ async function updateStockForOrderChange(oldItems, newItems) {
         continue;
       }
       
-      if (product.isComposite) {
+      if (product.isComposite && product.ingredients && Array.isArray(product.ingredients)) {
         // Для составных товаров управляем ингредиентами
         for (const ingredient of product.ingredients) {
           const stockChange = difference * ingredient.quantity;
@@ -240,7 +241,7 @@ app.get('/api/products', async (req, res) => {
     const productsWithCalculatedStock = products.map(product => {
       const productData = product.toJSON();
       
-      if (productData.isComposite && productData.ingredients && productData.ingredients.length > 0) {
+      if (productData.isComposite && productData.ingredients && Array.isArray(productData.ingredients) && productData.ingredients.length > 0) {
         // Рассчитываем максимальное количество порций на основе ингредиентов
         const availablePortions = productData.ingredients.map(ingredient => {
           const ingredientStock = ingredient.ingredientProduct.stock;
@@ -249,6 +250,7 @@ app.get('/api/products', async (req, res) => {
         });
         
         // Берем минимальное значение (лимитирующий ингредиент)
+        productData.availablePortions = Math.min(...availablePortions);
         productData.calculatedStock = Math.min(...availablePortions);
       }
       
@@ -285,13 +287,14 @@ app.get('/api/products/:id', async (req, res) => {
       const productData = product.toJSON();
       
       // Для составных товаров рассчитываем доступное количество
-      if (productData.isComposite && productData.ingredients && productData.ingredients.length > 0) {
+      if (productData.isComposite && productData.ingredients && Array.isArray(productData.ingredients) && productData.ingredients.length > 0) {
         const availablePortions = productData.ingredients.map(ingredient => {
           const ingredientStock = ingredient.ingredientProduct.stock;
           const requiredQuantity = ingredient.quantity;
           return Math.floor(ingredientStock / requiredQuantity);
         });
         
+        productData.availablePortions = Math.min(...availablePortions);
         productData.calculatedStock = Math.min(...availablePortions);
       }
       
@@ -458,19 +461,56 @@ app.delete('/api/products/:id/ingredients/:ingredientId', async (req, res) => {
 // Обработчики для заказов
 app.post('/api/orders', async (req, res) => {
   try {
-    const { guestName, guestId, orderItems, totalAmount, status, paymentMethod, comment } = req.body;
+    const { guestName, orderItems, totalAmount, status, paymentMethod, comment, guestId } = req.body;
     
-    let userId = guestId;
+    let userId = null;
+    let finalGuestName = guestName?.trim() || '';
     
-    // Если указано имя гостя, но нет ID, создаем или находим пользователя
-    if (guestName && guestName.trim() && !guestId) {
-      // Ищем существующего пользователя по имени
-      let user = await User.findOne({ where: { name: guestName.trim() } });
+    // Определяем нужно ли назначить заказ пользователю с id=4
+    const needsDefaultUser = () => {
+      const name = finalGuestName.toLowerCase();
+      if (!name) return true; // Пустое имя
+      
+      // Проверяем ключевые слова
+      const keywords = ['стол', 'бар', 'улица', 'гость'];
+      return keywords.some(keyword => name.includes(keyword));
+    };
+    
+    // Если передан guestId, используем его
+    if (guestId) {
+      userId = guestId;
+    } else if (needsDefaultUser()) {
+      userId = 4; // Назначаем пользователю с id=4
+      
+      // Генерируем имя с номером если нужно
+      if (!finalGuestName || ['стол', 'бар', 'улица', 'гость'].includes(finalGuestName.toLowerCase())) {
+        // Получаем количество заказов пользователя с id=4 за сегодня для нумерации
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        
+        const todayOrdersCount = await Order.count({
+          where: {
+            userId: 4,
+            createdAt: {
+              [Op.gte]: today,
+              [Op.lt]: tomorrow
+            }
+          }
+        });
+        
+        const baseWord = finalGuestName || 'Гость';
+        finalGuestName = `${baseWord} ${todayOrdersCount + 1}`;
+      }
+    } else if (finalGuestName) {
+      // Обычная логика для именованных гостей
+      let user = await User.findOne({ where: { name: finalGuestName } });
       
       if (!user) {
         // Создаем нового пользователя
         user = await User.create({
-          name: guestName.trim(),
+          name: finalGuestName,
           visitCount: 0,
           totalOrdersAmount: 0,
           averageCheck: 0
@@ -483,7 +523,7 @@ app.post('/api/orders', async (req, res) => {
     
     // Создаем заказ
     const order = await Order.create({
-      guestName: guestName?.trim() || null,
+      guestName: finalGuestName || null,
       userId: userId,
       orderItems,
       totalAmount,
@@ -512,7 +552,7 @@ app.post('/api/orders', async (req, res) => {
           ]
         });
 
-        if (productData.isComposite && productData.ingredients && productData.ingredients.length > 0) {
+        if (productData.isComposite && productData.ingredients && Array.isArray(productData.ingredients) && productData.ingredients.length > 0) {
           // Для составных товаров списываем ингредиенты
           for (const ingredient of productData.ingredients) {
             const totalQuantityToDeduct = ingredient.quantity * item.quantity;
@@ -698,7 +738,14 @@ app.put('/api/orders/:id/add-item', async (req, res) => {
 
     // Получаем информацию о товаре
     const product = await Product.findByPk(productId, {
-      include: [{ model: Category, as: 'category' }]
+      include: [
+        { model: Category, as: 'category' },
+        {
+          model: ProductIngredient,
+          as: 'ingredients',
+          include: [{ model: Product, as: 'ingredientProduct' }]
+        }
+      ]
     });
     
     if (!product) {
@@ -712,7 +759,7 @@ app.put('/api/orders/:id/add-item', async (req, res) => {
     // Проверяем доступность товара
     if (product.isComposite) {
       // Для составных товаров проверяем доступные порции
-      const availablePortions = await calculateAvailablePortions(product);
+      const availablePortions = calculateAvailablePortions(product.ingredients);
       if (availablePortions < quantity) {
         return res.status(400).json({ 
           message: `Недостаточно ингредиентов. Доступно порций: ${availablePortions}` 
@@ -767,11 +814,13 @@ app.put('/api/orders/:id/add-item', async (req, res) => {
         include: [{ model: Product, as: 'ingredientProduct' }]
       });
 
-      for (const ingredient of ingredients) {
-        const requiredAmount = ingredient.quantity * quantity;
-        await ingredient.ingredientProduct.update({
-          stock: ingredient.ingredientProduct.stock - requiredAmount
-        });
+      if (Array.isArray(ingredients)) {
+        for (const ingredient of ingredients) {
+          const requiredAmount = ingredient.quantity * quantity;
+          await ingredient.ingredientProduct.update({
+            stock: ingredient.ingredientProduct.stock - requiredAmount
+          });
+        }
       }
     } else {
       // Списываем обычный товар

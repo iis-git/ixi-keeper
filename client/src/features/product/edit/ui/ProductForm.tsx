@@ -1,5 +1,6 @@
 import { FC, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Button } from 'antd';
 import { productApi } from '../../../../shared/api/product';
 import { categoryApi } from '../../../../shared/api/category';
 import { handleApiError } from '../../../../shared/api/base';
@@ -484,13 +485,14 @@ export const ProductForm: FC<ProductFormProps> = ({ productId, initialData }) =>
           <div className={styles.ingredientsSection}>
             <div className={styles.ingredientsHeader}>
               <h3>Состав товара</h3>
-              <button
-                type="button"
+              <Button
+                type="primary"
                 onClick={addIngredient}
                 className={styles.addIngredientButton}
+                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
               >
                 + Добавить ингредиент
-              </button>
+              </Button>
             </div>
 
             {ingredients.length === 0 ? (

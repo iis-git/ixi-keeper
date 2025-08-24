@@ -28,7 +28,7 @@ const App: React.FC = () => {
           </Routes>
         </main>
         <footer className="app-footer">
-          <p>© 2025 Ixi-Keeper. Все права защищены.</p>
+          <p>© 2025 Ixi-Keeper. Прав ни у кого нет.</p>
         </footer>
       </div>
     </Router>

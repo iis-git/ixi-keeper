@@ -1,0 +1,193 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e8e8e8;
+
+  h3 {
+    margin: 0;
+    color: #333;
+    font-size: 20px;
+    font-weight: 600;
+  }
+}
+
+.closeBtn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+
+  &:hover {
+    background-color: #f5f5f5;
+    color: #666;
+  }
+}
+
+.content {
+  padding: 24px;
+}
+
+.orderInfo {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  margin-bottom: 24px;
+
+  .guestName {
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 8px;
+  }
+
+  .totalAmount {
+    font-size: 18px;
+    color: #333;
+
+    strong {
+      color: #2c5aa0;
+      font-size: 20px;
+    }
+  }
+}
+
+.commentSection {
+  margin-bottom: 24px;
+
+  label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #333;
+  }
+}
+
+.commentInput {
+  width: 100%;
+  
+  // Переопределяем стили antd TextArea для соответствия дизайну
+  :global(.ant-input) {
+    border-radius: 6px;
+    font-size: 14px;
+    
+    &:focus {
+      border-color: #2c5aa0;
+      box-shadow: 0 0 0 2px rgba(44, 90, 160, 0.1);
+    }
+  }
+}
+
+.paymentMethods {
+  h4 {
+    margin: 0 0 16px 0;
+    color: #333;
+    font-size: 16px;
+    font-weight: 600;
+  }
+}
+
+.methodButtons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.methodBtn {
+  flex: 1;
+  min-width: 140px;
+  padding: 16px 20px;
+  border: 2px solid transparent;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.cashBtn {
+  background: linear-gradient(135deg, #4caf50, #45a049);
+  color: white;
+
+  &:hover {
+    background: linear-gradient(135deg, #45a049, #3d8b40);
+  }
+}
+
+.cardBtn {
+  background: linear-gradient(135deg, #2196f3, #1976d2);
+  color: white;
+
+  &:hover {
+    background: linear-gradient(135deg, #1976d2, #1565c0);
+  }
+}
+
+.transferBtn {
+  background: linear-gradient(135deg, #ff9800, #f57c00);
+  color: white;
+
+  &:hover {
+    background: linear-gradient(135deg, #f57c00, #ef6c00);
+  }
+}
+
+@media (max-width: 480px) {
+  .modal {
+    width: 95%;
+    margin: 20px;
+  }
+
+  .methodButtons {
+    flex-direction: column;
+  }
+
+  .methodBtn {
+    min-width: auto;
+  }
+}

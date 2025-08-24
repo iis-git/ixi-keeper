@@ -123,7 +123,7 @@ const OrdersPage: React.FC = () => {
   return (
     <div className={styles.ordersPage}>
       <div className={styles.header}>
-        <h1>Все заказы</h1>
+        <h1>Заказы</h1>
         <div className={styles.controls}>
           <div className={styles.filterGroup}>
             <label>Статус:</label>

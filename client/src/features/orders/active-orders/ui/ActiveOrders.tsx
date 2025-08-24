@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import { EditOutlined, CloseOutlined } from '@ant-design/icons';
 import { orderApi, Order } from '../../../../shared/api/order';
 import { EditOrderModal } from '../../edit-order';
+import { PaymentModal } from '../../payment-modal';
 import styles from './ActiveOrders.module.scss';
 
 interface ActiveOrdersProps {
@@ -16,6 +18,8 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
   const [expandedOrders, setExpandedOrders] = useState<Set<number>>(new Set());
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [orderToPayId, setOrderToPayId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchActiveOrders();
@@ -65,27 +69,30 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
     setExpandedOrders(newExpanded);
   };
 
-  const handlePayOrder = async (orderId: number) => {
-    const paymentMethod = prompt('Выберите способ оплаты:\ncash - Наличные\ncard - Карта\ntransfer - Перевод') as 'cash' | 'card' | 'transfer';
-    
-    if (!paymentMethod || !['cash', 'card', 'transfer'].includes(paymentMethod)) {
-      alert('Некорректный способ оплаты');
-      return;
-    }
+  const handlePayOrder = (orderId: number) => {
+    setOrderToPayId(orderId);
+    setPaymentModalVisible(true);
+  };
 
-    const comment = prompt('Комментарий (необязательно):') || undefined;
+  const handlePaymentConfirm = async (paymentMethod: 'cash' | 'card' | 'transfer', comment?: string) => {
+    if (!orderToPayId) return;
 
     try {
-      await orderApi.complete(orderId, paymentMethod, comment);
+      await orderApi.complete(orderToPayId, paymentMethod, comment);
       await fetchActiveOrders();
       // Убираем заказ из развернутых
       const newExpanded = new Set(expandedOrders);
-      newExpanded.delete(orderId);
+      newExpanded.delete(orderToPayId);
       setExpandedOrders(newExpanded);
     } catch (err) {
       setError('Ошибка при оплате заказа');
       console.error('Error completing order:', err);
     }
+  };
+
+  const handlePaymentModalClose = () => {
+    setPaymentModalVisible(false);
+    setOrderToPayId(null);
   };
 
   const handleCloseOrder = async (orderId: number) => {
@@ -223,8 +230,9 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
                       <button
                         onClick={() => handleEditOrder(order)}
                         className={`${styles.actionBtn} ${styles.editBtn}`}
+                        title="Редактировать заказ"
                       >
-                        Редактировать
+                        <EditOutlined />
                       </button>
                       <button
                         onClick={() => handlePayOrder(order.id)}
@@ -235,8 +243,9 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
                       <button
                         onClick={() => handleCloseOrder(order.id)}
                         className={`${styles.actionBtn} ${styles.closeBtn}`}
+                        title="Закрыть заказ"
                       >
-                        Закрыть
+                        <CloseOutlined />
                       </button>
                     </div>
                   </div>
@@ -252,6 +261,14 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
         order={selectedOrder}
         onClose={handleCloseEditModal}
         onOrderUpdated={handleOrderUpdated}
+      />
+      
+      <PaymentModal
+        visible={paymentModalVisible}
+        onClose={handlePaymentModalClose}
+        onPayment={handlePaymentConfirm}
+        orderTotal={orderToPayId ? parseFloat((activeOrders.find(o => o.id === orderToPayId)?.totalAmount || 0).toString()) : 0}
+        guestName={orderToPayId ? activeOrders.find(o => o.id === orderToPayId)?.guestName || '' : ''}
       />
     </div>
   );

@@ -1,8 +1,18 @@
-import { FC, useState, useEffect } from 'react';
+import React, { useState, useEffect, FC } from 'react';
+import { Button } from 'antd';
+import { ProductIngredient, Product } from '../../../../entities/product/model/types';
 import { productApi } from '../../../../shared/api/product';
 import { handleApiError } from '../../../../shared/api/base';
-import type { Product, ProductIngredient } from '../../../../entities/product/model/types';
 import styles from './IngredientsManager.module.scss';
+
+// Утилиты для форматирования чисел
+const formatNumberForDisplay = (num: number): string => {
+  return num.toString().replace('.', ',');
+};
+
+const parseNumberFromDisplay = (str: string): number => {
+  return parseFloat(str.replace(',', '.'));
+};
 
 interface IngredientsManagerProps {
   productId: number;
@@ -164,13 +174,15 @@ export const IngredientsManager: FC<IngredientsManagerProps> = ({ productId, onC
                 disabled={loading}
               />
 
-              <button
+              <Button
+                type="primary"
+                size='large'
                 onClick={handleAddIngredient}
                 disabled={loading || !selectedProductId || !quantity}
-                className={styles.addButton}
+                style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
               >
                 Добавить
-              </button>
+              </Button>
             </div>
           </div>
 
@@ -224,9 +236,14 @@ export const IngredientsManager: FC<IngredientsManagerProps> = ({ productId, onC
         </div>
 
         <div className={styles.footer}>
-          <button onClick={onClose} className={styles.doneButton}>
+          <Button 
+            type="primary"
+            size="large"
+            onClick={onClose}
+            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+          >
             Готово
-          </button>
+          </Button>
         </div>
       </div>
     </div>

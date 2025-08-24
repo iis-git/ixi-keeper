@@ -18,7 +18,7 @@
     margin: 0 0 20px 0;
     font-size: 19px;
     margin-bottom: 0;
-    background: linear-gradient(90deg, rgba(105, 0, 252, 1) 0%, rgba(255, 229, 0, 1) 100%);
+    background: linear-gradient(90deg, rgba(105, 0, 252, 1) 0%, #ffe500 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text; /* для совместимости */
@@ -37,6 +37,7 @@
     padding: 8px 16px;
     border-radius: 4px;
     transition: background-color 0.3s;
+    color:#ffe500;
 
     &:hover {
       background-color: rgba(100, 108, 255, 0.1);

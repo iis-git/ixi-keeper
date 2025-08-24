@@ -5,8 +5,6 @@ import type { Product } from '../../../../entities/product/model/types';
 import type { User } from '../../../../shared/types/model';
 import styles from './CreateOrderModal.module.scss';
 
-const { TextArea } = Input;
-
 interface CreateOrderModalProps {
   product: Product | null;
   open: boolean;
@@ -81,13 +79,29 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     setSelectedGuest(null);
   };
 
+  const handleLocationSelect = (location: string) => {
+    setGuestName(location);
+    setSelectedGuest(null);
+    setSearchQuery('');
+  };
+
   const handleSubmit = () => {
     if (!product) return;
+
+    // Определяем нужно ли назначить заказ пользователю с id=4
+    const needsDefaultUser = () => {
+      const name = guestName.trim().toLowerCase();
+      if (!name) return true; // Пустое имя
+      
+      // Проверяем ключевые слова
+      const keywords = ['стол', 'бар', 'улица', 'гость'];
+      return keywords.some(keyword => name.includes(keyword));
+    };
 
     onCreateOrder({
       product,
       quantity: 1,
-      guestId: selectedGuest?.id,
+      guestId: selectedGuest?.id || (needsDefaultUser() ? 4 : undefined),
       guestName: guestName.trim() || '',
       comment: comment.trim() || undefined
     });
@@ -110,7 +124,6 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
   if (!product) return null;
 
-  const totalPrice = parseFloat(product.price.toString());
   const availableQuantity = product.isComposite 
     ? product.availablePortions || 0 
     : parseFloat(product.stock?.toString() || '0');
@@ -131,19 +144,10 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       <div className={styles.orderForm}>
         {/* Информация о товаре */}
         <div className={styles.productInfo}>
-          <h3>Товар</h3>
           <div className={styles.productCard}>
             <div className={styles.productDetails}>
               <span className={styles.productName}>{product.name}</span>
               <span className={styles.productPrice}>{product.price} ₽</span>
-              {product.category && (
-                <span 
-                  className={styles.categoryBadge}
-                  style={{ backgroundColor: product.category.color }}
-                >
-                  {product.category.name}
-                </span>
-              )}
               {product.isComposite && (
                 <span className={styles.compositeLabel}>
                   Коктейль
@@ -162,6 +166,34 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
 
         {/* Форма заказа */}
         <div className={styles.formFields}>
+          {/* Кнопки быстрого выбора */}
+          <div className={styles.field}>
+            <label>Быстрый выбор</label>
+            <div className={styles.locationButtons}>
+              <Button 
+                type="default" 
+                onClick={() => handleLocationSelect('Стол')}
+                className={`${styles.locationButton} ${styles.tableButton}`}
+              >
+                Стол
+              </Button>
+              <Button 
+                type="default" 
+                onClick={() => handleLocationSelect('Бар')}
+                className={`${styles.locationButton} ${styles.barButton}`}
+              >
+                Бар
+              </Button>
+              <Button 
+                type="default" 
+                onClick={() => handleLocationSelect('Улица')}
+                className={`${styles.locationButton} ${styles.streetButton}`}
+              >
+                Улица
+              </Button>
+            </div>
+          </div>
+          
           <div className={styles.field}>
             <label htmlFor="guestSearch">Выбор гостя</label>
             <div className={styles.guestSelector}>
@@ -195,7 +227,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
                   <span>Выбран: {selectedGuest.name}</span>
                   <Button
                     type="text"
-                    size="small"
+                    size="large"
                     onClick={() => {
                       setSelectedGuest(null);
                       setGuestName('');
@@ -211,25 +243,10 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           </div>
 
 
-          <div className={styles.field}>
-            <label htmlFor="comment">Комментарий</label>
-            <TextArea
-              id="comment"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              placeholder="Дополнительные пожелания..."
-              rows={3}
-            />
-          </div>
         </div>
 
-        {/* Итого */}
-        <div className={styles.total}>
-          <div className={styles.totalRow}>
-            <span>Цена за единицу:</span>
-            <span className={styles.totalPrice}>{totalPrice.toFixed(2)} ₽</span>
-          </div>
-        </div>
+     
+        
       </div>
     </Modal>
   );

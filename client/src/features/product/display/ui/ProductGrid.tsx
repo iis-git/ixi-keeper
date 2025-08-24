@@ -130,7 +130,7 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                     // Для составных товаров показываем рассчитанное количество
                     product.calculatedStock !== undefined && product.calculatedStock > 0 ? (
                       <span className={styles.inStock}>
-                        Можно приготовить: {product.calculatedStock} порций
+                        Остаток: {product.calculatedStock}
                       </span>
                     ) : (
                       <span className={styles.noStock}>Недостаточно ингредиентов</span>
@@ -139,22 +139,13 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                     // Для обычных товаров показываем остаток
                     product.stock > 0 ? (
                       <span className={styles.inStock}>
-                        В наличии: {Math.round(Number(product.stock))} {product.unit}
+                        Остаток: {Math.round(Number(product.stock))} {product.unit}
                       </span>
                     ) : (
                       <span className={styles.noStock}>Нет в наличии</span>
                     )
                   )}
                 </div>
-
-                {product.category && (
-                  <div 
-                    className={styles.categoryIndicator}
-                    style={{ backgroundColor: product.category.color }}
-                  >
-                    {product.category.name}
-                  </div>
-                )}
               </div>
             </button>
           ))}

@@ -11,11 +11,6 @@
   }
 
   .productCard {
-    background: #f8f9fa;
-    border: 1px solid #e0e0e0;
-    border-radius: 8px;
-    padding: 16px;
-
     .productDetails {
       display: flex;
       align-items: center;
@@ -33,14 +28,6 @@
         font-weight: 600;
         color: #52c41a;
         font-size: 16px;
-      }
-
-      .categoryBadge {
-        padding: 4px 8px;
-        border-radius: 12px;
-        color: white;
-        font-size: 12px;
-        font-weight: 500;
       }
 
       .compositeLabel {
@@ -242,6 +229,78 @@
       text-align: center;
       color: #666;
       font-style: italic;
+    }
+
+    .locationButtons {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .locationButton {
+      flex: 1;
+      min-width: 80px;
+      height: 40px;
+      border-radius: 6px;
+      font-weight: 500;
+      transition: all 0.2s;
+
+      // Стол - синий цвет
+      &.tableButton {
+        border: 1px solid #1890ff;
+        background: #e6f7ff;
+        color: #1890ff;
+
+        &:hover {
+          border-color: #40a9ff;
+          color: #40a9ff;
+          background: #bae7ff;
+        }
+
+        &:active {
+          background: #1890ff;
+          color: white;
+          border-color: #1890ff;
+        }
+      }
+
+      // Бар - оранжевый цвет
+      &.barButton {
+        border: 1px solid #fa8c16;
+        background: #fff7e6;
+        color: #fa8c16;
+
+        &:hover {
+          border-color: #ffa940;
+          color: #ffa940;
+          background: #ffd591;
+        }
+
+        &:active {
+          background: #fa8c16;
+          color: white;
+          border-color: #fa8c16;
+        }
+      }
+
+      // Улица - зеленый цвет
+      &.streetButton {
+        border: 1px solid #52c41a;
+        background: #f6ffed;
+        color: #52c41a;
+
+        &:hover {
+          border-color: #73d13d;
+          color: #73d13d;
+          background: #d9f7be;
+        }
+
+        &:active {
+          background: #52c41a;
+          color: white;
+          border-color: #52c41a;
+        }
+      }
     }
   }
 

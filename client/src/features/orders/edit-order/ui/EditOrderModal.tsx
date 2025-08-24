@@ -270,7 +270,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
               htmlType="submit"
               loading={loading}
             >
-              Сохранить изменения
+              Сохранить
             </Button>
             
             <Button
@@ -299,9 +299,9 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
               Закрыть заказ
             </Button>
             
-            <Button onClick={onClose}>
+            {/* <Button onClick={onClose}>
               Отмена
-            </Button>
+            </Button> */}
           </Space>
         </div>
       </Form>

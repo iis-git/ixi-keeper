@@ -18,14 +18,14 @@ const App: React.FC = () => {
     <Router>
       <div className={styles.app}>
         <header className={styles.header}>
-          <h1>STILL-PAY</h1>
+        <Link to="/"><h1>STILL-PAY</h1></Link>
           <nav>
             <ul>
               <li><Link to="/">Главная</Link></li>
               <li><Link to="/users">Пользователи</Link></li>
-              <li><Link to="/products">Товары</Link></li>
-              <li><Link to="/product-display">Выбор товаров</Link></li>
               <li><Link to="/categories">Категории</Link></li>
+              <li><Link to="/products">Товары</Link></li>
+              {/* <li><Link to="/product-display">Выбор товаров</Link></li> */}
               <li><Link to="/orders">Заказы</Link></li>
             </ul>
           </nav>
@@ -47,7 +47,7 @@ const App: React.FC = () => {
           </Routes>
         </main>
         <footer className={styles.footer}>
-          <p>© 2025 Ixi-Keeper. Все права защищены.</p>
+          <p>© 2025 Ixi-Keeper. Прав ни у кого нет.</p>
         </footer>
       </div>
     </Router>
