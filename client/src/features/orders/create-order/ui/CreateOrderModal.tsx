@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Input, Button } from 'antd';
+import { Modal, Input, Button, InputNumber, Space } from 'antd';
 import { userApi } from '../../../../shared/api/user';
 import type { Product } from '../../../../entities/product/model/types';
 import type { User } from '../../../../shared/types/model';
@@ -10,6 +10,7 @@ interface CreateOrderModalProps {
   open: boolean;
   onCancel: () => void;
   onCreateOrder: (orderData: OrderData) => void;
+  onQuickOrder?: (orderData: OrderData) => void;
 }
 
 interface OrderData {
@@ -18,13 +19,15 @@ interface OrderData {
   guestId?: number;
   guestName: string;
   comment?: string;
+  guestsCount?: number;
 }
 
 export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   product,
   open,
   onCancel,
-  onCreateOrder
+  onCreateOrder,
+  onQuickOrder
 }) => {
   const [selectedGuest, setSelectedGuest] = useState<User | null>(null);
   const [guestName, setGuestName] = useState('');
@@ -33,6 +36,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [guestsCount, setGuestsCount] = useState<number>(1);
 
   // Загрузка пользователей при открытии модалки
   useEffect(() => {
@@ -83,6 +87,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     setGuestName(location);
     setSelectedGuest(null);
     setSearchQuery('');
+    setGuestsCount(1);
   };
 
   const handleSubmit = () => {
@@ -103,7 +108,8 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       quantity: 1,
       guestId: selectedGuest?.id || (needsDefaultUser() ? 4 : undefined),
       guestName: guestName.trim() || '',
-      comment: comment.trim() || undefined
+      comment: comment.trim() || undefined,
+      guestsCount: guestsCount || 1
     });
 
     // Сброс формы
@@ -119,6 +125,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
     setComment('');
     setSelectedGuest(null);
     setSearchQuery('');
+    setGuestsCount(1);
     onCancel();
   };
 
@@ -127,6 +134,8 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
   const availableQuantity = product.isComposite 
     ? product.availablePortions || 0 
     : parseFloat(product.stock?.toString() || '0');
+
+  const totalAmount = Number(product.price);
 
   return (
     <Modal
@@ -140,6 +149,38 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
       okButtonProps={{
         disabled: availableQuantity <= 0
       }}
+      footer={[
+        <Button key="cancel" size="large" onClick={handleCancel}>
+          Отмена
+        </Button>,
+        onQuickOrder ? (
+          <Button
+            key="quick"
+            type="primary"
+            size="large"
+            style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+            onClick={() => {
+              if (!product) return;
+              // те же данные, что и при обычном создании
+              const data = {
+                product,
+                quantity: 1,
+                guestId: selectedGuest?.id || (guestName.trim() ? undefined : 4),
+                guestName: guestName.trim() || '',
+                comment: comment.trim() || undefined,
+                guestsCount: guestsCount || 1,
+              } as OrderData;
+              onQuickOrder(data);
+            }}
+            disabled={availableQuantity <= 0}
+          >
+            Оплата сразу
+          </Button>
+        ) : null,
+        <Button key="ok" type="primary" size="large" onClick={handleSubmit} disabled={availableQuantity <= 0}>
+          Создать заказ
+        </Button>,
+      ]}
     >
       <div className={styles.orderForm}>
         {/* Информация о товаре */}
@@ -147,7 +188,7 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           <div className={styles.productCard}>
             <div className={styles.productDetails}>
               <span className={styles.productName}>{product.name}</span>
-              <span className={styles.productPrice}>{product.price} ₽</span>
+              <span className={styles.productPrice}>{product.price} ₾</span>
               {product.isComposite && (
                 <span className={styles.compositeLabel}>
                   Коктейль
@@ -195,58 +236,103 @@ export const CreateOrderModal: React.FC<CreateOrderModalProps> = ({
           </div>
           
           <div className={styles.field}>
-            <label htmlFor="guestSearch">Выбор гостя</label>
-            <div className={styles.guestSelector}>
-              <Input
-                id="guestSearch"
-                value={searchQuery || guestName}
-                onChange={handleSearchChange}
-                placeholder="Поиск по имени гостя..."
-              />
-              
-              {searchQuery && filteredUsers.length > 0 && (
-                <div className={styles.guestDropdown}>
-                  {loading ? (
-                    <div className={styles.loading}>Загрузка...</div>
-                  ) : (
-                    filteredUsers.map(user => (
-                      <div
-                        key={user.id}
-                        className={styles.guestOption}
-                        onClick={() => handleGuestSelect(user)}
-                      >
-                        <span className={styles.guestName}>{user.name}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-              )}
-              
-              {selectedGuest && (
-                <div className={styles.selectedGuest}>
-                  <span>Выбран: {selectedGuest.name}</span>
-                  <Button
-                    type="text"
-                    size="large"
-                    onClick={() => {
-                      setSelectedGuest(null);
-                      setGuestName('');
-                      setSearchQuery('');
-                    }}
-                    className={styles.clearButton}
-                  >
-                    ✕
-                  </Button>
-                </div>
-              )}
+            <label htmlFor="guestSearch">Гость и количество</label>
+            <div className={styles.inlineRow}>
+              <div className={`${styles.guestSelector} ${styles.guestNameNarrow}`}>
+                <Input
+                  id="guestSearch"
+                  value={searchQuery || guestName}
+                  onChange={handleSearchChange}
+                  placeholder="Поиск по имени гостя..."
+                  className={styles.input}
+                />
+                {searchQuery && filteredUsers.length > 0 && (
+                  <div className={styles.guestDropdown}>
+                    {loading ? (
+                      <div className={styles.loading}>Загрузка...</div>
+                    ) : (
+                      filteredUsers.map(user => (
+                        <div
+                          key={user.id}
+                          className={styles.guestOption}
+                          onClick={() => handleGuestSelect(user)}
+                        >
+                          <span className={styles.guestName}>{user.name}</span>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                )}
+                {selectedGuest && (
+                  <div className={styles.selectedGuest}>
+                    <span>Выбран: {selectedGuest.name}</span>
+                    <Button
+                      type="text"
+                      size="large"
+                      onClick={() => {
+                        setSelectedGuest(null);
+                        setGuestName('');
+                        setSearchQuery('');
+                      }}
+                      className={styles.clearButton}
+                    >
+                      ✕
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <Space.Compact className={styles.compactGuests}>
+                <Button
+                  size="large"
+                  onClick={() => setGuestsCount(Math.max(1, (guestsCount || 1) - 1))}
+                >
+                  -
+                </Button>
+                <InputNumber
+                  id="guestsCount"
+                  size="large"
+                  min={1}
+                  controls={false}
+                  value={guestsCount}
+                  onChange={(v) => setGuestsCount(Number(v) || 1)}
+                  className={styles.centeredNumber}
+                  style={{ width: 48, textAlign: 'center' }}
+                />
+                <Button
+                  size="large"
+                  onClick={() => setGuestsCount((guestsCount || 1) + 1)}
+                >
+                  +
+                </Button>
+              </Space.Compact>
             </div>
           </div>
 
+          {/* Комментарий */}
+          <div className={styles.field}>
+            <label htmlFor="comment">Комментарий</label>
+            <Input.TextArea
+              id="comment"
+              placeholder="Например: без сахара, к столику у окна"
+              value={comment}
+              onChange={(e) => setComment(e.target.value)}
+              rows={3}
+            />
+          </div>
+
+          {/* Убрали отдельное поле количества гостей, т.к. оно теперь рядом с именем */}
 
         </div>
 
-     
-        
+        {/* Итого */}
+        <div className={styles.total}>
+          <div className={styles.totalRow}>
+            <span>Итого</span>
+            <span className={styles.totalPrice}>{totalAmount.toFixed(2)} ₾</span>
+          </div>
+        </div>
+      
       </div>
     </Modal>
   );

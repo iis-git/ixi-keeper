@@ -223,7 +223,7 @@ export const UserTable: FC = () => {
         {showAdvancedFilters && (
           <div className={styles.advancedFilters}>
             <div className={styles.filterGroup}>
-              <label>Средний чек (₽)</label>
+              <label>Средний чек (₾)</label>
               <div className={styles.rangeInputs}>
                 <InputNumber
                   placeholder="От"
@@ -244,7 +244,7 @@ export const UserTable: FC = () => {
             </div>
 
             <div className={styles.filterGroup}>
-              <label>Сумма заказов (₽)</label>
+              <label>Сумма заказов (₾)</label>
               <div className={styles.rangeInputs}>
                 <InputNumber
                   placeholder="От"
@@ -327,9 +327,9 @@ export const UserTable: FC = () => {
                       {user.isDebtor ? 'Да' : 'Нет'}
                     </span>
                   </td>
-                  <td>{user.totalOrdersAmount ? `${user.totalOrdersAmount} ₽` : '—'}</td>
+                  <td>{user.totalOrdersAmount ? `${user.totalOrdersAmount} ₾` : '—'}</td>
                   <td>{user.visitCount || 0}</td>
-                  <td>{user.averageCheck ? `${user.averageCheck} ₽` : '—'}</td>
+                  <td>{user.averageCheck ? `${user.averageCheck} ₾` : '—'}</td>
                   <td className={styles.actions}>
                     <Link to={`/users/edit/${user.id}`} className={`${styles.actionBtn} ${styles.editBtn}`} title="Редактировать">
                       <EditOutlined />

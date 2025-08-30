@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Form, Input, Button, List, InputNumber, Space, Typography, Divider, message } from 'antd';
+import { Modal, Form, Input, Button, List, InputNumber, Space, Typography, Divider, message, AutoComplete } from 'antd';
 import { DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import { orderApi } from '../../../../shared/api/order';
+import { userApi } from '../../../../shared/api/user';
+import type { User } from '../../../../shared/types/model';
 import styles from './EditOrderModal.module.scss';
 
 const { Title, Text } = Typography;
@@ -17,6 +19,7 @@ interface OrderItem {
 interface Order {
   id: number;
   guestName: string;
+  guestsCount?: number;
   orderItems: OrderItem[];
   totalAmount: number;
   status: string;
@@ -42,17 +45,55 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
   const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
   const [editingItem, setEditingItem] = useState<number | null>(null);
   const [editQuantity, setEditQuantity] = useState<number>(1);
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [selectedGuest, setSelectedGuest] = useState<User | null>(null);
+  const [usersLoading, setUsersLoading] = useState(false);
 
   useEffect(() => {
     if (order && visible) {
       form.setFieldsValue({
         guestName: order.guestName,
+        guestsCount: order.guestsCount || 1,
         comment: order.comment || '',
         paymentMethod: order.paymentMethod || ''
       });
       setOrderItems([...order.orderItems]);
+      // preload users
+      fetchUsers();
+      setSelectedGuest(null);
     }
   }, [order, visible, form]);
+
+  const fetchUsers = async () => {
+    try {
+      setUsersLoading(true);
+      const response = await userApi.getAll();
+      setUsers(response.data);
+      setFilteredUsers(response.data);
+    } catch (e) {
+      console.error('Ошибка загрузки пользователей:', e);
+    } finally {
+      setUsersLoading(false);
+    }
+  };
+
+  const handleSearchUsers = (value: string) => {
+    form.setFieldsValue({ guestName: value });
+    setSelectedGuest(null);
+    if (!value.trim()) {
+      setFilteredUsers(users);
+      return;
+    }
+    const filtered = users.filter(u => u.name.toLowerCase().includes(value.toLowerCase()));
+    setFilteredUsers(filtered);
+  };
+
+  const handleSelectUser = (value: string) => {
+    const user = users.find(u => u.name === value) || null;
+    setSelectedGuest(user);
+    form.setFieldsValue({ guestName: value });
+  };
 
   const handleRemoveItem = async (itemIndex: number) => {
     if (!order) return;
@@ -93,6 +134,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
       setLoading(true);
       await orderApi.update(order.id, {
         guestName: values.guestName,
+        guestId: selectedGuest?.id,
+        guestsCount: values.guestsCount || 1,
         comment: values.comment,
         status: order.status as 'active' | 'completed' | 'cancelled',
         orderItems: orderItems // Сохраняем измененные позиции заказа
@@ -118,6 +161,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
         status: 'completed',
         paymentMethod: paymentMethod as 'cash' | 'card' | 'transfer',
         guestName: form.getFieldValue('guestName'),
+        guestId: selectedGuest?.id,
+        guestsCount: form.getFieldValue('guestsCount') || 1,
         comment: form.getFieldValue('comment')
       });
       
@@ -140,6 +185,8 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
       await orderApi.update(order.id, {
         status: 'cancelled',
         guestName: form.getFieldValue('guestName'),
+        guestId: selectedGuest?.id,
+        guestsCount: form.getFieldValue('guestsCount') || 1,
         comment: form.getFieldValue('comment')
       });
       
@@ -175,13 +222,58 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
         onFinish={handleUpdateOrder}
         className={styles.form}
       >
-        <Form.Item
-          label="Имя гостя"
-          name="guestName"
-          rules={[{ required: true, message: 'Введите имя гостя' }]}
-        >
-          <Input placeholder="Введите имя гостя" />
-        </Form.Item>
+        <div className={styles.inlineRow}>
+          <Form.Item
+            label="Имя гостя"
+            name="guestName"
+            rules={[{ required: true, message: 'Введите имя гостя' }]}
+            style={{ marginBottom: 0 }}
+          >
+            <AutoComplete
+              className={styles.guestNameWide}
+              size="large"
+              value={form.getFieldValue('guestName')}
+              options={filteredUsers.map(u => ({ value: u.name }))}
+              onSearch={handleSearchUsers}
+              onSelect={handleSelectUser}
+              placeholder="Поиск по имени гостя..."
+              filterOption={false}
+              notFoundContent={usersLoading ? 'Загрузка...' : undefined}
+            />
+          </Form.Item>
+
+          <Form.Item label="Гостей" style={{ marginBottom: 0 }}>
+            <Space.Compact className={styles.compactGuests}>
+              <Button
+                size="large"
+                onClick={() => {
+                  const current = Number(form.getFieldValue('guestsCount') || 1);
+                  form.setFieldsValue({ guestsCount: Math.max(1, current - 1) });
+                }}
+              >
+                -
+              </Button>
+              <Form.Item name="guestsCount" noStyle rules={[{ required: true, message: 'Укажите количество гостей' }]}> 
+                <InputNumber
+                  size="large"
+                  min={1}
+                  controls={false}
+                  className={styles.centeredNumber}
+                  style={{ width: 48, textAlign: 'center' }}
+                />
+              </Form.Item>
+              <Button
+                size="large"
+                onClick={() => {
+                  const current = Number(form.getFieldValue('guestsCount') || 1);
+                  form.setFieldsValue({ guestsCount: current + 1 });
+                }}
+              >
+                +
+              </Button>
+            </Space.Compact>
+          </Form.Item>
+        </div>
 
         <Form.Item label="Комментарий" name="comment">
           <TextArea 
@@ -221,7 +313,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 title={item.productName}
                 description={
                   <Space direction="vertical" size="small">
-                    <Text>Цена: {item.price} ₽</Text>
+                    <Text>Цена: {item.price} ₾</Text>
                     {editingItem === index ? (
                       <Space>
                         <InputNumber
@@ -251,7 +343,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
                 }
               />
               <div className={styles.itemTotal}>
-                {item.price * item.quantity} ₽
+                {item.price * item.quantity} ₾
               </div>
             </List.Item>
           )}
@@ -260,7 +352,7 @@ export const EditOrderModal: React.FC<EditOrderModalProps> = ({
         <Divider />
 
         <div className={styles.totalSection}>
-          <Title level={4}>Итого: {calculateTotal()} ₽</Title>
+          <Title level={4}>Итого: {calculateTotal()} ₾</Title>
         </div>
 
         <div className={styles.actions}>

@@ -4,9 +4,9 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color-scheme: dark;
+  color: #eaeaea;
+  background-color: #000;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -30,6 +30,16 @@ a:hover {
 body {
   margin: 0;
   min-height: 100vh;
+}
+
+html, body, #root {
+  background-color: #000;
+  /* Subtle radial gradient accents over black, akin to the logo */
+  background-image:
+    radial-gradient(1100px circle at 18% 8%, rgba(105, 0, 252, 0.24), rgba(0, 0, 0, 0) 60%),
+    radial-gradient(900px circle at 88% 24%, rgba(255, 229, 0, 0.16), rgba(0, 0, 0, 0) 55%);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 h1 {

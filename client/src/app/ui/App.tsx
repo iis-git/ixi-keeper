@@ -9,6 +9,7 @@ import { ProductDisplayPage } from '../../pages/product-display';
 import { CategoriesPage } from '../../pages/categories';
 import { CategoryFormPage } from '../../pages/category-form';
 import { OrdersPage } from '../../pages/orders';
+import { InventoryPage } from '../../pages/inventory';
 // @ts-ignore
 import styles from './App.module.scss';
 
@@ -22,9 +23,10 @@ const App: React.FC = () => {
           <nav>
             <ul>
               <li><Link to="/">Главная</Link></li>
-              <li><Link to="/users">Пользователи</Link></li>
+              <li><Link to="/users">Гости</Link></li>
               <li><Link to="/categories">Категории</Link></li>
               <li><Link to="/products">Товары</Link></li>
+              <li><Link to="/inventory">Остатки</Link></li>
               {/* <li><Link to="/product-display">Выбор товаров</Link></li> */}
               <li><Link to="/orders">Заказы</Link></li>
             </ul>
@@ -44,10 +46,11 @@ const App: React.FC = () => {
             <Route path="/categories/new" element={<CategoryFormPage />} />
             <Route path="/categories/edit/:id" element={<CategoryFormPage />} />
             <Route path="/orders" element={<OrdersPage />} />
+            <Route path="/inventory" element={<InventoryPage />} />
           </Routes>
         </main>
         <footer className={styles.footer}>
-          <p>© 2025 Ixi-Keeper. Прав ни у кого нет.</p>
+          <p>© 2025 iXi-Keeper. Прав ни у кого нет.</p>
         </footer>
       </div>
     </Router>

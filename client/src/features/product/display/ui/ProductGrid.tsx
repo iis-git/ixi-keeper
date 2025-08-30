@@ -109,7 +109,20 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                   (product.calculatedStock === undefined || product.calculatedStock <= 0) : 
                   product.stock <= 0
                 ) ? styles.outOfStock : ''
-              }`}
+              } ${(() => {
+                const threshold = typeof product.lowStockThreshold === 'number' ? product.lowStockThreshold : undefined;
+                if (!threshold || threshold <= 0) return '';
+                if (product.isComposite) {
+                  const portions = typeof product.calculatedStock === 'number' ? product.calculatedStock : (typeof product.availablePortions === 'number' ? product.availablePortions : undefined);
+                  return typeof portions === 'number' && portions <= threshold ? styles.lowStock : '';
+                } else {
+                  const unitSize = Number((product as any).unitSize) || 1;
+                  const stockNum = Number((product as any).stock);
+                  const hasStock = Number.isFinite(stockNum);
+                  const positions = hasStock && unitSize > 0 ? Math.floor(stockNum / unitSize) : undefined;
+                  return typeof positions === 'number' && positions <= threshold ? styles.lowStock : '';
+                }
+              })()}`}
               onClick={() => handleProductClick(product)}
               disabled={
                 product.isComposite ? 
@@ -122,8 +135,6 @@ export const ProductGrid: React.FC<ProductGridProps> = ({
                 style={{ backgroundColor: product.color || '#646cff' }}
               >
                 <div className={styles.productName}>{product.name}</div>
-                
-                <div className={styles.productPrice}>{Math.round(Number(product.price))} ₽</div>
                 
                 <div className={styles.productStock}>
                   {product.isComposite ? (

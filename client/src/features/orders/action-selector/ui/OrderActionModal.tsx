@@ -35,7 +35,7 @@ export const OrderActionModal: React.FC<OrderActionModalProps> = ({
           <div className={styles.productCard}>
             <div className={styles.productDetails}>
               <span className={styles.productName}>{product.name}</span>
-              <span className={styles.productPrice}>{product.price} ₽</span>
+              <span className={styles.productPrice}>{product.price} ₾</span>
               {product.category && (
                 <span 
                   className={styles.categoryBadge}

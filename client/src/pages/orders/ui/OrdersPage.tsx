@@ -107,6 +107,22 @@ const OrdersPage: React.FC = () => {
     return method ? methodMap[method as keyof typeof methodMap] || method : '—';
   };
 
+  // Отображение имени гостя: для авто-сгенерированных имён показываем "no name"
+  const getDisplayGuestName = (name?: string): string => {
+    if (!name) return 'no name';
+    const trimmed = name.trim();
+    if (trimmed.length === 0) return 'no name';
+    const lower = trimmed.toLowerCase();
+    const autoPatterns = [
+      /^гость\s*\d+$/,        // Гость 5
+      /^стол\s*\d+$/,         // Стол 3
+      /^бар\s*\d+$/,          // Бар 1
+      /^улиц[аы]\s*\d+$/,     // Улица 2 / Улицы 2
+    ];
+    if (autoPatterns.some((rx) => rx.test(lower))) return 'no name';
+    return trimmed;
+  };
+
   const handleViewOrder = (order: Order) => {
     setSelectedOrder(order);
     setIsViewModalOpen(true);
@@ -173,6 +189,7 @@ const OrdersPage: React.FC = () => {
             <tr>
               <th>№ заказа</th>
               <th>Имя гостя</th>
+              <th>Гостей</th>
               <th>Дата/время</th>
               <th>Статус</th>
               <th>Сумма</th>
@@ -184,7 +201,7 @@ const OrdersPage: React.FC = () => {
           <tbody>
             {filteredOrders.length === 0 ? (
               <tr>
-                <td colSpan={8} className={styles.noData}>
+                <td colSpan={9} className={styles.noData}>
                   {searchQuery || statusFilter !== 'all' ? 'Заказы не найдены' : 'Заказов пока нет'}
                 </td>
               </tr>
@@ -192,10 +209,11 @@ const OrdersPage: React.FC = () => {
               filteredOrders.map((order) => (
                 <tr key={order.id}>
                   <td>#{order.id}</td>
-                  <td>{order.guestName}</td>
+                  <td>{getDisplayGuestName(order.guestName)}</td>
+                  <td>{typeof order.guestsCount === 'number' ? order.guestsCount : '—'}</td>
                   <td>{formatDate(order.createdAt)}</td>
                   <td>{getStatusBadge(order.status)}</td>
-                  <td>{parseFloat(order.totalAmount.toString()).toFixed(2)} ₽</td>
+                  <td>{parseFloat(order.totalAmount.toString()).toFixed(2)} ₾</td>
                   <td>{getPaymentMethodText(order.paymentMethod)}</td>
                   <td className={styles.comment}>
                     {order.comment ? (

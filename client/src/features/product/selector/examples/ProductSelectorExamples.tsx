@@ -103,7 +103,7 @@ const ProductSelectorExamples: React.FC = () => {
             {selectedProducts.map((product, index) => (
               <div key={`${product.id}-${index}`} className={styles.selectedProductItem}>
                 <span className={styles.productName}>{product.name}</span>
-                <span className={styles.productPrice}>{product.price} ₽</span>
+                <span className={styles.productPrice}>{product.price} ₾</span>
                 {product.category && (
                   <span 
                     className={styles.categoryBadge}

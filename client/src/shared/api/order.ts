@@ -10,6 +10,7 @@ export interface OrderItem {
 export interface Order {
   id: number;
   guestName: string;
+  guestsCount?: number;
   orderItems: OrderItem[];
   totalAmount: number;
   status: 'active' | 'completed' | 'cancelled';
@@ -21,6 +22,7 @@ export interface Order {
 
 export interface CreateOrderData {
   guestName: string;
+  guestsCount?: number;
   orderItems: OrderItem[];
   totalAmount: number;
   status?: 'active' | 'completed' | 'cancelled';
@@ -30,10 +32,12 @@ export interface CreateOrderData {
 
 export interface UpdateOrderData {
   guestName?: string;
+  guestsCount?: number;
   status?: 'active' | 'completed' | 'cancelled';
   paymentMethod?: 'cash' | 'card' | 'transfer';
   comment?: string;
   orderItems?: OrderItem[];
+  guestId?: number;
 }
 
 export const orderApi = {

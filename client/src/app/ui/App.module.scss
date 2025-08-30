@@ -13,6 +13,7 @@
   flex-direction: column;
   align-items: center;
   padding: 10px 0;
+  background-color: transparent;
 
   h1 {
     margin: 0 0 20px 0;
@@ -40,21 +41,25 @@
     color:#ffe500;
 
     &:hover {
-      background-color: rgba(100, 108, 255, 0.1);
+      background-color: rgba(255, 255, 255, 0.08);
     }
   }
 }
 
 .content {
   flex: 1;
+  background-color: transparent;
 }
 
 .footer {
   padding: 20px 0;
   text-align: center;
-  border-top: 1px solid #e0e0e0;
   font-size: 0.9rem;
-  color: #888;
+  background: linear-gradient(90deg, rgba(105, 0, 252, 1) 0%, #ffe500 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text; /* для совместимости */
+  color: transparent;
 }
 
 @media (min-width: 768px) {

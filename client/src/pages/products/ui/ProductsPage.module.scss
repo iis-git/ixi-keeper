@@ -21,6 +21,21 @@
   gap: 15px;
 }
 
+.copyButton {
+  background-color: #2196f3;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background-color 0.3s;
+  border: none;
+  cursor: pointer;
+}
+
+.copyButton:hover {
+  background-color: #1976d2;
+}
+
 .addButton, .categoriesButton {
   background-color: #646cff;
   color: white;
@@ -34,6 +49,7 @@
 
 .addButton:hover, .categoriesButton:hover {
   background-color: #535bf2;
+  color: white;
 }
 
 .categoriesButton {

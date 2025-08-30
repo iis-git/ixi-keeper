@@ -21,8 +21,11 @@ export const ProductForm: FC<ProductFormProps> = ({ productId, initialData }) =>
     name: '',
     description: '',
     price: '',
+    costPrice: '',
+    sortOrder: '',
     categoryId: undefined,
     stock: '',
+    lowStockThreshold: '',
     unitSize: '1',
     unit: 'шт',
     color: '#646cff',
@@ -36,6 +39,8 @@ export const ProductForm: FC<ProductFormProps> = ({ productId, initialData }) =>
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+
+  // Цвет выбирается через нативный color input
 
   useEffect(() => {
     fetchCategories();
@@ -171,17 +176,31 @@ export const ProductForm: FC<ProductFormProps> = ({ productId, initialData }) =>
     let processedValue: any = value;
     
     // Для числовых полей сохраняем как строку, валидируем отдельно
-    if (name === 'price' || name === 'stock' || name === 'unitSize') {
+    if (name === 'price' || name === 'costPrice' || name === 'stock' || name === 'unitSize' || name === 'sortOrder' || name === 'lowStockThreshold') {
       processedValue = value; // Сохраняем как строку
       
       // Валидируем поле
       const fieldNames = {
         price: 'Цена',
+        costPrice: 'Себестоимость',
         stock: 'Остаток',
-        unitSize: 'Размер единицы'
+        unitSize: 'Размер единицы',
+        sortOrder: 'Сортировка',
+        lowStockThreshold: 'Порог остатка'
       };
-      
-      const error = validateNumberField(value, fieldNames[name as keyof typeof fieldNames]);
+
+      let error = '';
+      if (name === 'sortOrder') {
+        if (value !== '' && !/^\d+$/.test(value)) {
+          error = `${fieldNames.sortOrder} должна быть целым числом`;
+        }
+      } else if (name === 'lowStockThreshold') {
+        if (value !== '' && !/^\d+$/.test(value)) {
+          error = `${fieldNames.lowStockThreshold} должен быть целым неотрицательным числом`;
+        }
+      } else {
+        error = validateNumberField(value, fieldNames[name as keyof typeof fieldNames]) || '';
+      }
       setValidationErrors(prev => ({
         ...prev,
         [name]: error || ''
@@ -202,7 +221,7 @@ export const ProductForm: FC<ProductFormProps> = ({ productId, initialData }) =>
   const handleBlur = (e: React.FocusEvent<HTMLInputElement>): void => {
     const { name, value } = e.target;
     
-    if (name === 'price' || name === 'stock' || name === 'unitSize') {
+    if (name === 'price' || name === 'costPrice' || name === 'stock' || name === 'unitSize') {
       const formattedValue = formatNumberToTwoDecimals(value);
       if (formattedValue !== value) {
         setFormData({
@@ -245,7 +264,10 @@ export const ProductForm: FC<ProductFormProps> = ({ productId, initialData }) =>
       const dataToSend = {
         ...formData,
         price: parseFloat((formData.price as string).replace(',', '.')),
+        costPrice: formData.costPrice === '' ? 0 : parseFloat((formData.costPrice as string).replace(',', '.')),
+        sortOrder: formData.sortOrder === '' ? 0 : parseInt(String(formData.sortOrder), 10),
         stock: formData.isComposite ? 0 : parseFloat((formData.stock as string).replace(',', '.')),
+        lowStockThreshold: formData.lowStockThreshold === '' ? 0 : parseInt(String(formData.lowStockThreshold), 10),
         unitSize: parseFloat((formData.unitSize as string).replace(',', '.')),
         categoryId: formData.categoryId || undefined,
         isComposite: Boolean(formData.isComposite)
@@ -320,16 +342,7 @@ export const ProductForm: FC<ProductFormProps> = ({ productId, initialData }) =>
           />
         </div>
 
-        <div className={styles.formGroup}>
-          <label htmlFor="description">Описание</label>
-          <textarea
-            id="description"
-            name="description"
-            value={formData.description || ''}
-            onChange={handleChange}
-            rows={3}
-          />
-        </div>
+        {/* Описание перенесено в самый низ формы */}
 
         <div className={styles.formRow}>
           <div className={styles.formGroup}>
@@ -346,6 +359,39 @@ export const ProductForm: FC<ProductFormProps> = ({ productId, initialData }) =>
             />
             {validationErrors.price && (
               <span className={styles.errorText}>{validationErrors.price}</span>
+            )}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="sortOrder">Сортировка</label>
+            <input
+              type="text"
+              id="sortOrder"
+              name="sortOrder"
+              value={formData.sortOrder ?? ''}
+              onChange={handleChange}
+              placeholder="0"
+              className={validationErrors.sortOrder ? styles.inputError : ''}
+            />
+            {validationErrors.sortOrder && (
+              <span className={styles.errorText}>{validationErrors.sortOrder}</span>
+            )}
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="costPrice">Себестоимость</label>
+            <input
+              type="text"
+              id="costPrice"
+              name="costPrice"
+              value={formData.costPrice ?? ''}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="0,00"
+              className={validationErrors.costPrice ? styles.inputError : ''}
+            />
+            {validationErrors.costPrice && (
+              <span className={styles.errorText}>{validationErrors.costPrice}</span>
             )}
           </div>
 
@@ -407,50 +453,59 @@ export const ProductForm: FC<ProductFormProps> = ({ productId, initialData }) =>
           </div>
         </div>
 
-        <div className={styles.formGroup}>
-          <label htmlFor="unitSize">Количество списания за единицу *</label>
-          <input
-            type="text"
-            id="unitSize"
-            name="unitSize"
-            value={formData.unitSize || ''}
-            onChange={handleChange}
-            onBlur={handleBlur}
-            placeholder="1,000"
-            className={validationErrors.unitSize ? styles.inputError : ''}
-          />
-          {validationErrors.unitSize && (
-            <span className={styles.errorText}>{validationErrors.unitSize}</span>
-          )}
-          <small className={styles.helpText}>
-            Сколько единиц товара будет списано при продаже одной позиции
-          </small>
+        <div className={styles.formRow}>
+          <div className={styles.formGroup}>
+            <label htmlFor="unitSize">Количество списания за единицу *</label>
+            <input
+              type="text"
+              id="unitSize"
+              name="unitSize"
+              value={formData.unitSize || ''}
+              onChange={handleChange}
+              onBlur={handleBlur}
+              placeholder="1,000"
+              className={validationErrors.unitSize ? styles.inputError : ''}
+            />
+            {validationErrors.unitSize && (
+              <span className={styles.errorText}>{validationErrors.unitSize}</span>
+            )}
+            <small className={styles.helpText}>
+              Сколько единиц товара будет списано при продаже одной позиции
+            </small>
+          </div>
+
+          <div className={styles.formGroup}>
+            <label htmlFor="lowStockThreshold">Порог остатка (для оповещения)</label>
+            <input
+              type="text"
+              id="lowStockThreshold"
+              name="lowStockThreshold"
+              value={formData.lowStockThreshold ?? ''}
+              onChange={handleChange}
+              placeholder="0"
+              className={validationErrors.lowStockThreshold ? styles.inputError : ''}
+            />
+            {validationErrors.lowStockThreshold && (
+              <span className={styles.errorText}>{validationErrors.lowStockThreshold}</span>
+            )}
+            <small className={styles.helpText}>
+              При достижении этого количества позиций товар будет подсвечен и появится отметка "Заканчивается"
+            </small>
+          </div>
         </div>
 
         <div className={styles.formGroup}>
-          <label htmlFor="color">Цвет товара</label>
-          <div className={styles.colorInputGroup}>
+          <label>Цвет</label>
+          <div className={styles.customColorGroup}>
             <input
               type="color"
-              id="color"
+              id="customColor"
               name="color"
               value={formData.color || '#646cff'}
               onChange={handleChange}
-              className={styles.colorInput}
-            />
-            <input
-              type="text"
-              name="color"
-              value={formData.color || '#646cff'}
-              onChange={handleChange}
-              placeholder="#646cff"
-              className={styles.colorTextInput}
-              pattern="^#[0-9A-Fa-f]{6}$"
+              className={styles.customColorInput}
             />
           </div>
-          <small className={styles.helpText}>
-            Цвет фона кнопки товара в интерфейсе выбора
-          </small>
         </div>
 
         <div className={styles.formGroup}>
@@ -550,6 +605,18 @@ export const ProductForm: FC<ProductFormProps> = ({ productId, initialData }) =>
           </div>
         )}
         
+        {/* Блок описания перенесен в конец перед кнопками */}
+        <div className={styles.formGroup}>
+          <label htmlFor="description">Описание</label>
+          <textarea
+            id="description"
+            name="description"
+            value={formData.description || ''}
+            onChange={handleChange}
+            rows={3}
+          />
+        </div>
+
         <div className={styles.formActions}>
           <button 
             type="submit" 

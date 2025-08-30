@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { ProductGrid } from '../../display';
 import { CreateOrderModal } from '../../../orders/create-order';
-import { OrderActionModal } from '../../../orders/action-selector';
+import { PaymentModal } from '../../../orders/payment-modal';
 import { orderApi } from '../../../../shared/api/order';
 import type { Product } from '../../../../entities/product/model/types';
 import styles from './ProductSelector.module.scss';
@@ -33,15 +33,19 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 }) => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isActionModalOpen, setIsActionModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  // Убрали шаг выбора действия: больше не используем модалку действий
+
+  // Состояние оплаты для быстрого заказа
+  const [isPaymentOpen, setIsPaymentOpen] = useState(false);
+  const [paymentOrderId, setPaymentOrderId] = useState<number | null>(null);
+  const [paymentGuestName, setPaymentGuestName] = useState<string>('');
+  const [paymentTotal, setPaymentTotal] = useState<number>(0);
 
   const handleProductClick = async (product: Product) => {
     setSelectedProduct(product);
     
     // Если есть открытый заказ - добавляем товар к нему
     if (openOrderId) {
-      setIsLoading(true);
       try {
         await orderApi.addItem(openOrderId, product.id, 1);
         console.log(`Товар ${product.name} добавлен к заказу ${openOrderId}`);
@@ -66,12 +70,12 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
           return;
         }
       } finally {
-        setIsLoading(false);
+        // no-op
       }
     }
     
-    // Иначе показываем модалку выбора действия
-    setIsActionModalOpen(true);
+    // Иначе сразу открываем модалку создания заказа
+    setIsCreateModalOpen(true);
     console.log('Выбран товар:', product);
     
     // Вызываем callback если передан
@@ -80,10 +84,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     }
   };
 
-  const handleActionModalClose = () => {
-    setIsActionModalOpen(false);
-    setSelectedProduct(null);
-  };
+  // Модалка действий больше не используется
 
   const handleCreateModalClose = () => {
     setIsCreateModalOpen(false);
@@ -94,9 +95,10 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
     try {
       // Создаем заказ через API
       const totalAmount = Number(orderData.product.price) * orderData.quantity;
-      const newOrder = await orderApi.create({
+      const response = await orderApi.create({
         guestName: orderData.guestName,
         comment: orderData.comment,
+        guestsCount: orderData.guestsCount,
         totalAmount: totalAmount,
         orderItems: [{
           productId: orderData.product.id,
@@ -106,7 +108,7 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
         }]
       });
       
-      console.log('Заказ создан:', newOrder);
+      console.log('Заказ создан:', response);
       
       // Обновляем список заказов
       if (onOrderUpdate) {
@@ -122,16 +124,61 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
   };
 
 
-  const handleCreateWithGuest = () => {
-    console.log('Создать заказ с гостем');
-    setIsActionModalOpen(false);
-    setIsCreateModalOpen(true);
+  // Создание заказа теперь открывается напрямую в handleProductClick
+
+  // Добавление к активному оставлено выше (в ветке openOrderId)
+
+  const handleQuickOrder = async (orderData: any) => {
+    try {
+      const totalAmount = Number(orderData.product.price) * orderData.quantity;
+      const response = await orderApi.create({
+        guestName: orderData.guestName,
+        comment: orderData.comment,
+        guestsCount: orderData.guestsCount,
+        totalAmount,
+        orderItems: [{
+          productId: orderData.product.id,
+          productName: orderData.product.name,
+          price: orderData.product.price,
+          quantity: orderData.quantity,
+        }],
+      });
+
+      const created = response.data;
+      // Закрыть форму создания
+      setIsCreateModalOpen(false);
+      
+      // Открыть модалку оплаты с данными нового заказа
+      setPaymentOrderId(created.id);
+      setPaymentGuestName(created.guestName);
+      setPaymentTotal(Number(created.totalAmount));
+      setIsPaymentOpen(true);
+
+      // Обновить список активных заказов (новый появится в правой панели)
+      if (onOrderUpdate) onOrderUpdate();
+    } catch (error) {
+      console.error('Ошибка быстрого заказа:', error);
+      alert('Ошибка при создании быстрого заказа');
+    }
   };
 
-  const handleAddToActive = () => {
-    console.log('Добавить к активному заказу');
-    setIsActionModalOpen(false);
-    setSelectedProduct(null);
+  const handlePayment = async (paymentMethod: 'cash' | 'card' | 'transfer', comment?: string) => {
+    if (!paymentOrderId) return;
+    try {
+      await orderApi.complete(paymentOrderId, paymentMethod, comment);
+      setIsPaymentOpen(false);
+      setPaymentOrderId(null);
+      // Обновить активные заказы
+      if (onOrderUpdate) onOrderUpdate();
+    } catch (error) {
+      console.error('Ошибка оплаты заказа:', error);
+      alert('Ошибка при оплате заказа');
+    }
+  };
+
+  const handlePaymentClose = () => {
+    setIsPaymentOpen(false);
+    setPaymentOrderId(null);
   };
 
   return (
@@ -140,19 +187,22 @@ const ProductSelector: React.FC<ProductSelectorProps> = ({
 
       <ProductGrid onProductClick={handleProductClick} refreshTrigger={refreshTrigger} />
       
-      <OrderActionModal
-        product={selectedProduct}
-        open={isActionModalOpen}
-        onCancel={handleActionModalClose}
-        onCreateWithGuest={handleCreateWithGuest}
-        onAddToActive={handleAddToActive}
-      />
+      {/* OrderActionModal удален: сразу открываем CreateOrderModal */}
       
       <CreateOrderModal
         product={selectedProduct}
         open={isCreateModalOpen}
         onCancel={handleCreateModalClose}
         onCreateOrder={handleCreateOrder}
+        onQuickOrder={handleQuickOrder}
+      />
+
+      <PaymentModal
+        visible={isPaymentOpen}
+        onClose={handlePaymentClose}
+        onPayment={handlePayment}
+        orderTotal={paymentTotal}
+        guestName={paymentGuestName}
       />
     </div>
   );

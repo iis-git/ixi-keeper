@@ -47,6 +47,18 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
     },
+    costPrice: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Себестоимость товара'
+    },
+    sortOrder: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Поле для управления порядком отображения'
+    },
     categoryId: {
       type: DataTypes.INTEGER,
       allowNull: true,
@@ -59,6 +71,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DECIMAL(10, 2),
       defaultValue: 0,
       comment: 'Общее количество на складе'
+    },
+    lowStockThreshold: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      comment: 'Порог остатка для оповещения (0/NULL = отключено)'
     },
     unitSize: {
       type: DataTypes.DECIMAL(10, 3),

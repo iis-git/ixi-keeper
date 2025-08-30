@@ -323,6 +323,37 @@
   }
 }
 
+// Центрирование текста внутри AntD InputNumber
+.centeredNumber {
+  :global(.ant-input-number-input) {
+    text-align: center;
+  }
+}
+
+// В одну строку + вертикальное выравнивание
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.guestNameNarrow {
+  max-width: 180px;
+}
+
+// Высота для больших кнопок (40px) и центрирование по вертикали
+.numberLarge {
+  :global(.ant-input-number) {
+    height: 40px;
+    display: flex;
+    align-items: center;
+  }
+  :global(.ant-input-number-input) {
+    height: 40px;
+    line-height: 40px;
+  }
+}
+
 // Адаптивность
 @media (max-width: 768px) {
   .orderForm {

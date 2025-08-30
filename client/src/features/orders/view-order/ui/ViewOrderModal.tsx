@@ -68,7 +68,7 @@ export const ViewOrderModal: React.FC<ViewOrderModalProps> = ({
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Общая сумма:</span>
-              <span className={styles.value}>{parseFloat(order.totalAmount.toString()).toFixed(2)} ₽</span>
+              <span className={styles.value}>{parseFloat(order.totalAmount.toString()).toFixed(2)} ₾</span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Способ оплаты:</span>
@@ -96,9 +96,9 @@ export const ViewOrderModal: React.FC<ViewOrderModalProps> = ({
                       <span className={styles.itemQuantity}>× {item.quantity}</span>
                     </div>
                     <div className={styles.itemPrices}>
-                      <span className={styles.itemPrice}>{item.price} ₽</span>
+                      <span className={styles.itemPrice}>{item.price} ₾</span>
                       <span className={styles.itemTotal}>
-                        {(parseFloat(item.price.toString()) * item.quantity).toFixed(2)} ₽
+                        {(parseFloat(item.price.toString()) * item.quantity).toFixed(2)} ₾
                       </span>
                     </div>
                   </div>

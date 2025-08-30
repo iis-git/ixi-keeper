@@ -12,6 +12,20 @@ async function runMigration() {
     `);
     console.log('✓ Добавлено поле isComposite в таблицу products');
 
+    // Добавляем поле costPrice (себестоимость) в таблицу products
+    await sequelize.query(`
+      ALTER TABLE products 
+      ADD COLUMN IF NOT EXISTS "costPrice" DECIMAL(10,2) DEFAULT 0 NOT NULL;
+    `);
+    console.log('✓ Добавлено поле costPrice в таблицу products');
+
+    // Добавляем поле sortOrder (сортировка) в таблицу products
+    await sequelize.query(`
+      ALTER TABLE products 
+      ADD COLUMN IF NOT EXISTS "sortOrder" INTEGER DEFAULT 0 NOT NULL;
+    `);
+    console.log('✓ Добавлено поле sortOrder в таблицу products');
+
     // Создаем таблицу product_ingredients
     await sequelize.query(`
       CREATE TABLE IF NOT EXISTS product_ingredients (

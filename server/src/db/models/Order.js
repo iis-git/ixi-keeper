@@ -45,6 +45,12 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 'active',
       comment: 'Статус заказа: активный, завершенный, отмененный'
     },
+    guestsCount: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      defaultValue: 1,
+      comment: 'Количество гостей за столом/в заказе'
+    },
     paymentMethod: {
       type: DataTypes.ENUM('cash', 'card', 'transfer'),
       allowNull: true,

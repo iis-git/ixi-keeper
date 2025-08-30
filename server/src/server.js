@@ -222,7 +222,7 @@ app.get('/api/products', async (req, res) => {
   try {
     const products = await Product.findAll({
       include: [
-        { model: Category, as: 'category' },
+        { model: Category, as: 'category', where: { isActive: true }, required: true },
         {
           model: ProductIngredient,
           as: 'ingredients',
@@ -234,7 +234,8 @@ app.get('/api/products', async (req, res) => {
             }
           ]
         }
-      ]
+      ],
+      order: [ ['sortOrder', 'ASC'], ['name', 'ASC'] ]
     });
 
     // Для составных товаров рассчитываем доступное количество
@@ -461,7 +462,7 @@ app.delete('/api/products/:id/ingredients/:ingredientId', async (req, res) => {
 // Обработчики для заказов
 app.post('/api/orders', async (req, res) => {
   try {
-    const { guestName, orderItems, totalAmount, status, paymentMethod, comment, guestId } = req.body;
+    const { guestName, orderItems, totalAmount, status, paymentMethod, comment, guestId, guestsCount } = req.body;
     
     let userId = null;
     let finalGuestName = guestName?.trim() || '';
@@ -529,7 +530,8 @@ app.post('/api/orders', async (req, res) => {
       totalAmount,
       status: status || 'active',
       paymentMethod,
-      comment
+      comment,
+      guestsCount: typeof guestsCount === 'number' && guestsCount > 0 ? guestsCount : 1
     });
     
     // Статистика пользователя обновляется только при закрытии заказа, не при создании
@@ -645,6 +647,11 @@ app.put('/api/orders/:id', async (req, res) => {
       await updateStockForOrderChange(order.orderItems, updateData.orderItems);
     }
     
+    // Если передан guestId, обновляем связь с пользователем
+    if (updateData.guestId) {
+      order.userId = updateData.guestId;
+    }
+
     // Обновляем заказ с принудительным сохранением JSON полей
     if (updateData.orderItems) {
       order.orderItems = updateData.orderItems;
@@ -654,7 +661,7 @@ app.put('/api/orders/:id', async (req, res) => {
     
     // Обновляем остальные поля
     Object.keys(updateData).forEach(key => {
-      if (key !== 'orderItems') {
+      if (key !== 'orderItems' && key !== 'guestId') {
         order[key] = updateData[key];
       }
     });

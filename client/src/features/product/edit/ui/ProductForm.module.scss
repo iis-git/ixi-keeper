@@ -47,6 +47,12 @@
   transition: border-color 0.3s, box-shadow 0.3s;
 }
 
+/* Выравнивание высоты select как у input */
+.formGroup input:not([type="checkbox"]),
+.formGroup select {
+  height: 48px;
+}
+
 .formGroup input:focus,
 .formGroup select:focus,
 .formGroup textarea:focus {
@@ -97,6 +103,42 @@
   display: flex;
   gap: 10px;
   align-items: center;
+}
+
+/* Палитра цветов как в форме категорий */
+.colorPicker {
+  display: grid;
+  grid-template-columns: repeat(10, 24px);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.colorOption {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+}
+
+.selected {
+  border-color: #333;
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.1);
+}
+
+.customColorGroup {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.customColorInput {
+  width: 50px;
+  height: 40px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0;
 }
 
 .colorInput {
@@ -364,7 +406,7 @@
     border: 1px solid #444;
     border-radius: 4px;
     font-size: 14px;
-    height: 50px;
+    height: 48px;
 
     &:focus {
       outline: none;
@@ -387,7 +429,7 @@
     border-radius: 4px;
     font-size: 14px;
     text-align: center;
-    height: 50px;
+    height: 48px;
 
     &:focus {
       outline: none;

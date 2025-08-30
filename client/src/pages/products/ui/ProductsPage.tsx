@@ -37,6 +37,7 @@ const ProductsPage: React.FC = () => {
     }
   };
 
+
   const handleDelete = async (id: number): Promise<void> => {
     if (window.confirm('Вы уверены, что хотите удалить этот товар?')) {
       try {
@@ -117,7 +118,12 @@ const ProductsPage: React.FC = () => {
               
               <div className={styles.productInfo}>
                 <div className={styles.priceInfo}>
-                  <span className={styles.price}>{product.price} ₽</span>
+                  <span className={styles.price}>{product.price} ₾</span>
+                  {typeof (product as any).costPrice !== 'undefined' && (
+                    <span className={styles.unitSize} style={{ marginLeft: '8px', opacity: 0.8 }}>
+                      Себестоимость: {(product as any).costPrice} ₾
+                    </span>
+                  )}
                   {product.isComposite && (
                     <span className={styles.compositeLabel}>Коктейль</span>
                   )}

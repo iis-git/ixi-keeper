@@ -4,6 +4,54 @@
       margin-bottom: 16px;
     }
 
+// Компактная группа для гостей: выравниваем бордер и высоту
+.compactGuests {
+  :global(.ant-input-number) {
+    border-width: 1px; // чтобы совпадало с кнопками
+    height: 40px;
+  }
+  :global(.ant-btn.ant-btn-lg) {
+    height: 40px;
+  }
+}
+
+// Центрирование текста внутри AntD InputNumber
+.centeredNumber {
+  :global(.ant-input-number-input) {
+    text-align: center;
+  }
+}
+
+// В одну строку + вертикальное выравнивание
+.inlineRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.guestNameNarrow {
+  max-width: 180px;
+}
+
+// Более широкий инпут гостя для редактирования
+.guestNameWide {
+  min-width: 260px;
+  max-width: 340px;
+}
+
+// Высота для больших кнопок и вертикальное выравнивание инпута
+.numberLarge {
+  :global(.ant-input-number) {
+    height: 40px;
+    display: flex;
+    align-items: center;
+  }
+  :global(.ant-input-number-input) {
+    height: 40px;
+    line-height: 40px;
+  }
+}
+
     .ant-input,
     .ant-input-number,
     .ant-select-selector {

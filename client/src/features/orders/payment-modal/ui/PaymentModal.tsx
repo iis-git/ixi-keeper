@@ -48,7 +48,7 @@ const PaymentModal: React.FC<PaymentModalProps> = ({
           <div className={styles.orderInfo}>
             <div className={styles.guestName}>Гость: {guestName}</div>
             <div className={styles.totalAmount}>
-              Сумма к оплате: <strong>{parseFloat(orderTotal.toString()).toFixed(2)} ₽</strong>
+              Сумма к оплате: <strong>{parseFloat(orderTotal.toString()).toFixed(2)} ₾</strong>
             </div>
           </div>
 

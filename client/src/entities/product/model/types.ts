@@ -3,9 +3,12 @@ export interface Product {
   name: string;
   description?: string;
   price: number;
+  costPrice: number;
+  sortOrder: number;
   categoryId?: number;
   category?: Category;
   stock: number;
+  lowStockThreshold?: number;
   unitSize: number;
   unit: string;
   color: string;
@@ -22,8 +25,11 @@ export interface CreateProductData {
   name: string;
   description?: string;
   price: number;
+  costPrice: number;
+  sortOrder: number;
   categoryId?: number;
   stock: number;
+  lowStockThreshold?: number;
   unitSize: number;
   unit: string;
   color?: string;
@@ -35,8 +41,11 @@ export interface UpdateProductData {
   name?: string;
   description?: string;
   price?: number;
+  costPrice?: number;
+  sortOrder?: number;
   categoryId?: number;
   stock?: number;
+  lowStockThreshold?: number;
   unitSize?: number;
   unit?: string;
   color?: string;
