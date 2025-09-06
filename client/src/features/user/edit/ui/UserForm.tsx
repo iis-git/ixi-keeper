@@ -1,5 +1,6 @@
 import { FC, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Row, Col, Input, InputNumber, Select, Checkbox, Button } from 'antd';
 import { User } from '../../../../entities/user/model/types';
 import { userApi } from '../../../../shared/api/user';
 import { handleApiError } from '../../../../shared/api/base';
@@ -21,7 +22,8 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
     isDebtor: false,
     totalOrdersAmount: 0,
     visitCount: 0,
-    averageCheck: 0
+    averageCheck: 0,
+    guestType: 'guest'
   });
   
   const [loading, setLoading] = useState<boolean>(isEditMode && !initialData);
@@ -36,13 +38,21 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
   const fetchUser = async (): Promise<void> => {
     try {
       const response = await userApi.getById(userId!);
-      setFormData(response.data);
+      setFormData(prev => ({
+        ...prev,
+        ...response.data,
+        guestType: (response.data as any).guestType ?? 'guest'
+      }));
       setLoading(false);
     } catch (err: any) {
       const errorMessage = handleApiError(err);
       setError(`Не удалось загрузить данные пользователя. ${errorMessage}`);
       setLoading(false);
     }
+  };
+
+  const handleGuestTypeChange = (value: 'owner' | 'guest' | 'regular' | 'bartender'): void => {
+    setFormData(prev => ({ ...prev, guestType: value }));
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>): void => {
@@ -80,96 +90,125 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
 
   return (
     <form onSubmit={handleSubmit} className={styles.userForm}>
-      <div className={styles.formGroup}>
-        <label htmlFor="name">Имя</label>
-        <input
-          type="text"
-          id="name"
-          name="name"
-          value={formData.name}
-          onChange={handleChange}
-          required
-        />
-      </div>
-      
-      <div className={styles.formGroup}>
-        <label htmlFor="phone">Номер телефона</label>
-        <input
-          type="tel"
-          id="phone"
-          name="phone"
-          value={formData.phone || ''}
-          onChange={handleChange}
-        />
-      </div>
-      
-      <div className={styles.formGroup}>
-        <label htmlFor="comment">Комментарий</label>
-        <textarea
-          id="comment"
-          name="comment"
-          value={formData.comment || ''}
-          onChange={handleChange}
-          rows={3}
-        />
-      </div>
-      
-      <div className={styles.formGroup}>
-        <label className={styles.checkboxLabel}>
-          <input
-            type="checkbox"
-            name="isDebtor"
-            checked={formData.isDebtor || false}
-            onChange={handleChange}
-          />
-          Должник
-        </label>
-      </div>
-      
-      <div className={styles.formGroup}>
-        <label htmlFor="totalOrdersAmount">Сумма заказов</label>
-        <input
-          type="number"
-          id="totalOrdersAmount"
-          name="totalOrdersAmount"
-          value={formData.totalOrdersAmount}
-          onChange={handleChange}
-          min="0"
-        />
-      </div>
-      
-      <div className={styles.formGroup}>
-        <label htmlFor="visitCount">Количество посещений</label>
-        <input
-          type="number"
-          id="visitCount"
-          name="visitCount"
-          value={formData.visitCount}
-          onChange={handleChange}
-          min="0"
-        />
-      </div>
-      
-      <div className={styles.formGroup}>
-        <label htmlFor="averageCheck">Средний чек</label>
-        <input
-          type="number"
-          id="averageCheck"
-          name="averageCheck"
-          value={formData.averageCheck}
-          onChange={handleChange}
-          min="0"
-        />
-      </div>
-      
-      <div className={styles.formActions}>
-        <button type="button" onClick={() => navigate('/users')} className={styles.cancelButton}>
-          Отмена
-        </button>
-        <button type="submit" className={styles.submitButton}>
-          {isEditMode ? 'Сохранить' : 'Добавить'}
-        </button>
-      </div>
+      <Row gutter={[16, 16]}>
+        <Col xs={24} md={12}>
+          <div className={styles.formGroup}>
+            <label htmlFor="name">Имя</label>
+            <Input
+              id="name"
+              name="name"
+              value={formData.name}
+              onChange={handleChange}
+              size="large"
+              required
+            />
+          </div>
+        </Col>
+        <Col xs={24} md={12}>
+          <div className={styles.formGroup}>
+            <label htmlFor="phone">Номер телефона</label>
+            <Input
+              id="phone"
+              name="phone"
+              value={formData.phone || ''}
+              onChange={handleChange}
+              size="large"
+            />
+          </div>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <div className={styles.formGroup}>
+            <label htmlFor="guestType">Тип гостя</label>
+            <Select
+              id="guestType"
+              value={(formData.guestType as any) || 'guest'}
+              onChange={handleGuestTypeChange}
+              size="large"
+              style={{ width: '100%' }}
+              options={[
+                { value: 'owner', label: 'Владелец' },
+                { value: 'guest', label: 'Гость' },
+                { value: 'regular', label: 'Постоянник' },
+                { value: 'bartender', label: 'Бармен' },
+              ]}
+            />
+          </div>
+        </Col>
+        <Col xs={24} md={12}>
+          <div className={styles.formGroup}>
+            <label htmlFor="isDebtor">Должник</label>
+            <Checkbox
+              id="isDebtor"
+              checked={formData.isDebtor || false}
+              onChange={(e) => setFormData(prev => ({ ...prev, isDebtor: e.target.checked }))}
+            >
+              Да
+            </Checkbox>
+          </div>
+        </Col>
+        <Col xs={24} md={12}>
+          <div className={styles.formGroup}>
+            <label htmlFor="totalOrdersAmount">Сумма заказов</label>
+            <InputNumber
+              id="totalOrdersAmount"
+              value={formData.totalOrdersAmount}
+              onChange={(v) => setFormData(prev => ({ ...prev, totalOrdersAmount: Number(v) || 0 }))}
+              min={0}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <div className={styles.formGroup}>
+            <label htmlFor="visitCount">Количество посещений</label>
+            <InputNumber
+              id="visitCount"
+              value={formData.visitCount}
+              onChange={(v) => setFormData(prev => ({ ...prev, visitCount: Number(v) || 0 }))}
+              min={0}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </Col>
+        <Col xs={24} md={12}>
+          <div className={styles.formGroup}>
+            <label htmlFor="averageCheck">Средний чек</label>
+            <InputNumber
+              id="averageCheck"
+              value={formData.averageCheck}
+              onChange={(v) => setFormData(prev => ({ ...prev, averageCheck: Number(v) || 0 }))}
+              min={0}
+              style={{ width: '100%' }}
+            />
+          </div>
+        </Col>
+
+        <Col xs={24}>
+          <div className={styles.formGroup}>
+            <label htmlFor="comment">Комментарий</label>
+            <Input.TextArea
+              id="comment"
+              name="comment"
+              value={formData.comment || ''}
+              onChange={handleChange}
+              rows={3}
+            />
+          </div>
+        </Col>
+
+        <Col span={24}>
+          <div className={styles.formActions}>
+            <Button type="default" onClick={() => navigate('/users')} className={styles.cancelButton}>
+              Отмена
+            </Button>
+            <Button type="primary" htmlType="submit" className={styles.submitButton}>
+              {isEditMode ? 'Сохранить' : 'Добавить'}
+            </Button>
+          </div>
+        </Col>
+      </Row>
     </form>
   );
 };

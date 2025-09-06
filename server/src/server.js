@@ -6,7 +6,7 @@ const app = express();
 const port = process.env.PORT || 3020;
 
 // Импортируем модели
-const { User, Product, Order, OrderProduct, Category, ProductIngredient } = require('./db/models');
+const { User, Product, Category, Order, UserProductStats, ProductStatistics, ProductIngredient, WriteOff } = require('./db/models');
 const { Op } = require('sequelize');
 
 // Добавляем CORS middleware для обработки запросов с клиента
@@ -23,7 +23,75 @@ app.use((req, res, next) => {
   next();
 });
 
-// Middleware
+// Обеспечиваем парсинг тела запросов до объявления маршрутов списаний
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
+// Списания товаров для заказа
+app.get('/api/orders/:id/write-offs', async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const writeOffs = await WriteOff.findAll({
+      where: { orderId },
+      include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'unit'] }],
+      order: [['createdAt', 'DESC']]
+    });
+    res.json(writeOffs);
+  } catch (error) {
+    console.error('Error fetching write-offs:', error);
+    res.status(500).json({ message: 'Не удалось получить списания' });
+  }
+});
+
+app.post('/api/orders/:id/write-offs', async (req, res) => {
+  try {
+    const orderId = parseInt(req.params.id);
+    const { productId, quantity, reason } = req.body;
+
+    if (!productId || !quantity || Number(quantity) <= 0) {
+      return res.status(400).json({ message: 'Некорректные данные списания' });
+    }
+
+    const order = await Order.findByPk(orderId);
+    if (!order) return res.status(404).json({ message: 'Заказ не найден' });
+    if (order.status !== 'active') return res.status(400).json({ message: 'Списание доступно только для активных заказов' });
+
+    const product = await Product.findByPk(productId, {
+      include: [
+        {
+          model: ProductIngredient,
+          as: 'ingredients',
+          include: [{ model: Product, as: 'ingredientProduct' }]
+        }
+      ]
+    });
+    if (!product) return res.status(404).json({ message: 'Товар не найден' });
+
+    // Обновляем склад
+    const qty = parseFloat(quantity);
+    if (product.isComposite && product.ingredients && Array.isArray(product.ingredients)) {
+      for (const ingredient of product.ingredients) {
+        const stockChange = qty * ingredient.quantity; // списываем ингредиенты
+        await ingredient.ingredientProduct.update({ stock: parseFloat(ingredient.ingredientProduct.stock) - stockChange });
+      }
+    } else {
+      const stockChange = qty * parseFloat(product.unitSize || 1);
+      await product.update({ stock: parseFloat(product.stock) - stockChange });
+    }
+
+    const writeOff = await WriteOff.create({ orderId, productId, quantity: qty, reason });
+
+    const created = await WriteOff.findByPk(writeOff.id, {
+      include: [{ model: Product, as: 'product', attributes: ['id', 'name', 'unit'] }]
+    });
+    res.status(201).json(created);
+  } catch (error) {
+    console.error('Error creating write-off:', error);
+    res.status(500).json({ message: 'Не удалось создать списание' });
+  }
+});
+
+// Middleware (дубликат на случай переноса кода; оставлено для совместимости)
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
@@ -68,6 +136,72 @@ async function updateUserStatistics(userId, orderAmount) {
     console.log(`Debug: currentTotal=${currentTotal}, amount=${amount}, result=${newTotalAmount}`);
   } catch (error) {
     console.error('Error updating user statistics:', error);
+  }
+}
+
+// Функция для обновления статистики товаров пользователя
+async function updateUserProductStatistics(userId, orderItems) {
+  try {
+    for (const item of orderItems) {
+      const { productId, productName, quantity, price } = item;
+      
+      // Получаем себестоимость товара
+      const product = await Product.findByPk(productId);
+      const costPrice = product ? parseFloat(product.costPrice) : 0;
+      const totalCostAmount = parseFloat(quantity) * costPrice;
+      
+      // Обновляем статистику пользователя
+      const [userStats, userCreated] = await UserProductStats.findOrCreate({
+        where: { userId, productId },
+        defaults: {
+          productName,
+          totalQuantity: quantity,
+          totalAmount: quantity * price,
+          totalCostAmount: totalCostAmount,
+          orderCount: 1,
+          lastOrderDate: new Date()
+        }
+      });
+
+      if (!userCreated) {
+        await userStats.update({
+          productName,
+          totalQuantity: parseFloat(userStats.totalQuantity) + parseFloat(quantity),
+          totalAmount: parseFloat(userStats.totalAmount) + (parseFloat(quantity) * parseFloat(price)),
+          totalCostAmount: parseFloat(userStats.totalCostAmount) + totalCostAmount,
+          orderCount: userStats.orderCount + 1,
+          lastOrderDate: new Date()
+        });
+      }
+
+      // Обновляем общую статистику товаров
+      const [productStats, productCreated] = await ProductStatistics.findOrCreate({
+        where: { productId },
+        defaults: {
+          productName,
+          totalQuantity: quantity,
+          totalAmount: quantity * price,
+          totalCostAmount: totalCostAmount,
+          orderCount: 1,
+          lastOrderDate: new Date()
+        }
+      });
+
+      if (!productCreated) {
+        await productStats.update({
+          productName,
+          totalQuantity: parseFloat(productStats.totalQuantity) + parseFloat(quantity),
+          totalAmount: parseFloat(productStats.totalAmount) + (parseFloat(quantity) * parseFloat(price)),
+          totalCostAmount: parseFloat(productStats.totalCostAmount) + totalCostAmount,
+          orderCount: productStats.orderCount + 1,
+          lastOrderDate: new Date()
+        });
+      }
+    }
+
+    console.log(`Updated product statistics for user ${userId}`);
+  } catch (error) {
+    console.error('Error updating user product statistics:', error);
   }
 }
 
@@ -152,6 +286,7 @@ app.get('/api/users', async (req, res) => {
     const users = await User.findAll();
     res.json(users);
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -169,6 +304,7 @@ app.get('/api/users/:id', async (req, res) => {
       res.status(404).json({ message: 'Пользователь не найден' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -187,6 +323,7 @@ app.put('/api/users/:id', async (req, res) => {
       res.status(404).json({ message: 'Пользователь не найден' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -204,7 +341,215 @@ app.delete('/api/users/:id', async (req, res) => {
       res.status(404).json({ message: 'Пользователь не найден' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// API эндпоинт для получения статистики товаров пользователя
+app.get('/api/users/:id/product-stats', async (req, res) => {
+  try {
+    const userId = req.params.id;
+    
+    const stats = await UserProductStats.findAll({
+      where: { userId },
+      include: [{
+        model: Product,
+        as: 'product',
+        attributes: ['id', 'name', 'unit'],
+        required: false
+      }],
+      order: [['totalQuantity', 'DESC']]
+    });
+
+    // Форматируем данные для фронтенда
+    const formattedStats = stats.map(stat => ({
+      productId: stat.productId,
+      productName: stat.product ? stat.product.name : stat.productName,
+      unit: stat.product ? stat.product.unit : 'шт',
+      totalQuantity: parseFloat(stat.totalQuantity),
+      totalAmount: parseFloat(stat.totalAmount),
+      totalCostAmount: parseFloat(stat.totalCostAmount || 0),
+      profit: parseFloat(stat.totalAmount) - parseFloat(stat.totalCostAmount || 0),
+      orderCount: stat.orderCount,
+      lastOrderDate: stat.lastOrderDate
+    }));
+
+    res.json(formattedStats);
+  } catch (error) {
+    console.error('Error fetching user product stats:', error);
+    res.status(500).json({ error: 'Не удалось получить статистику товаров' });
+  }
+});
+
+// API эндпоинт для получения общей статистики товаров
+app.get('/api/products/analytics', async (req, res) => {
+  try {
+    const { period, page = 1, pageSize = 15, categoryId, sortBy, sortOrder = 'DESC', search, startDate, endDate } = req.query;
+
+    const where = {};
+    if (search) {
+      where.productName = { [Op.iLike]: `%${search}%` };
+    }
+
+    // Приоритет: явный диапазон дат (startDate/endDate) имеет приоритет над preset period
+    if (startDate || endDate) {
+      const range = {};
+      if (startDate) {
+        const start = new Date(startDate);
+        start.setHours(0, 0, 0, 0);
+        range[Op.gte] = start;
+      }
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999);
+        range[Op.lte] = end;
+      }
+      where.lastOrderDate = range;
+    } else if (period) {
+      const now = new Date();
+      let start;
+      switch (period) {
+        case 'today':
+          start = new Date();
+          start.setHours(0, 0, 0, 0);
+          break;
+        case '7days':
+          start = new Date();
+          start.setDate(start.getDate() - 7);
+          break;
+        case '30days':
+          start = new Date();
+          start.setDate(start.getDate() - 30);
+          break;
+      }
+      if (start) {
+        where.lastOrderDate = { [Op.gte]: start };
+      }
+    }
+
+    const offset = (page - 1) * pageSize;
+    const limit = parseInt(pageSize, 10);
+
+    const productInclude = {
+      model: Product,
+      as: 'product',
+      attributes: ['price', 'costPrice', 'categoryId', 'unit'],
+      include: {
+        model: Category,
+        as: 'category',
+        attributes: ['name', 'color'],
+      },
+      required: false, // LEFT JOIN по умолчанию
+    };
+
+    if (categoryId) {
+      productInclude.where = { categoryId };
+      productInclude.required = true; // INNER JOIN для фильтрации
+    }
+
+    console.log(`[Analytics API] Received sorting request: sortBy='${sortBy}', sortOrder='${sortOrder}'`);
+
+    let order = [['totalAmount', 'DESC']]; // Сортировка по умолчанию
+    if (sortBy) {
+      const validSortOrders = ['ASC', 'DESC'];
+      const direction = validSortOrders.includes(sortOrder.toUpperCase()) ? sortOrder.toUpperCase() : 'DESC';
+
+      // Определяем поле для сортировки
+      const sortableFields = {
+        productName: 'productName',
+        totalQuantity: 'totalQuantity',
+        totalAmount: 'totalAmount',
+        profit: sequelize.literal('"ProductStatistics"."totalAmount" - "ProductStatistics"."totalCostAmount"'),
+        profitMargin: sequelize.literal('CASE WHEN "ProductStatistics"."totalAmount" > 0 THEN (("ProductStatistics"."totalAmount" - "ProductStatistics"."totalCostAmount") / "ProductStatistics"."totalAmount") * 100 ELSE 0 END'),
+        orderCount: 'orderCount',
+        lastOrderDate: 'lastOrderDate',
+      };
+
+      const sortField = sortableFields[sortBy];
+      if (sortField) {
+        // Для sequelize.literal и обычных полей
+        order = [[sortField, direction]];
+        console.log('[Analytics API] Applied sorting:', { sortBy, direction });
+      } else {
+        console.log(`[Analytics API] Warning: sortBy field '${sortBy}' is not sortable.`);
+      }
+    }
+
+    const { count, rows: stats } = await ProductStatistics.findAndCountAll({
+      where,
+      include: [productInclude],
+      order,
+      offset,
+      limit,
+    });
+
+    // Учитываем списания за выбранный период/диапазон
+    let writeOffWhere = {};
+    if (where.lastOrderDate) {
+      writeOffWhere.createdAt = where.lastOrderDate;
+    }
+    // Агрегируем списания по товарам
+    const writeOffsRaw = await WriteOff.findAll({
+      attributes: [
+        'productId',
+        [sequelize.fn('SUM', sequelize.col('quantity')), 'totalWriteOffQty'],
+      ],
+      where: writeOffWhere,
+      group: ['productId']
+    });
+    const writeOffMap = new Map();
+    for (const w of writeOffsRaw) {
+      const json = w.toJSON();
+      writeOffMap.set(json.productId, parseFloat(json.totalWriteOffQty));
+    }
+
+    const enrichedStats = stats.map(stat => {
+      const { product, ...rest } = stat.toJSON();
+      const totalAmount = parseFloat(rest.totalAmount);
+      const totalCostAmount = parseFloat(rest.totalCostAmount || 0);
+      const profit = totalAmount - totalCostAmount;
+      const profitMargin = totalAmount > 0 ? (profit / totalAmount) * 100 : 0;
+
+      // Данные по списаниям
+      const writeOffQty = writeOffMap.get(rest.productId) || 0;
+      const currentCostPrice = product ? parseFloat(product.costPrice) : 0;
+      const writeOffCostAmount = writeOffQty * currentCostPrice;
+      const netQuantity = parseFloat(rest.totalQuantity) - writeOffQty;
+      const netAmount = totalAmount; // выручка не меняется, но можно учесть, если нужно
+      const netProfit = (totalAmount - totalCostAmount) - writeOffCostAmount;
+      const netMargin = totalAmount > 0 ? (netProfit / totalAmount) * 100 : 0;
+
+      return {
+        ...rest,
+        totalAmount,
+        totalCostAmount,
+        profit,
+        profitMargin,
+        currentPrice: product ? parseFloat(product.price) : 0,
+        currentCostPrice,
+        unit: product ? product.unit : 'шт.',
+        category: product ? product.category : null,
+        averageOrderQuantity: rest.orderCount > 0 ? parseFloat(rest.totalQuantity) / rest.orderCount : 0,
+        // Поля со списаниями и нетто-метрики
+        writeOffQuantity: writeOffQty,
+        writeOffCostAmount,
+        netQuantity,
+        netAmount,
+        netProfit,
+        netMargin,
+      };
+    });
+
+    res.json({ 
+      stats: enrichedStats, 
+      total: count, 
+      page: parseInt(page, 10),
+      pageSize: parseInt(pageSize, 10),
+    });
+  } catch (error) {
+    console.error('Error fetching product analytics:', error);
+    res.status(500).json({ error: 'Не удалось получить аналитику товаров' });
   }
 });
 
@@ -222,7 +567,7 @@ app.get('/api/products', async (req, res) => {
   try {
     const products = await Product.findAll({
       include: [
-        { model: Category, as: 'category', where: { isActive: true }, required: true },
+        { model: Category, as: 'category', required: false },
         {
           model: ProductIngredient,
           as: 'ingredients',
@@ -244,15 +589,22 @@ app.get('/api/products', async (req, res) => {
       
       if (productData.isComposite && productData.ingredients && Array.isArray(productData.ingredients) && productData.ingredients.length > 0) {
         // Рассчитываем максимальное количество порций на основе ингредиентов
-        const availablePortions = productData.ingredients.map(ingredient => {
-          const ingredientStock = ingredient.ingredientProduct.stock;
-          const requiredQuantity = ingredient.quantity;
-          return Math.floor(ingredientStock / requiredQuantity);
-        });
+        const availablePortions = productData.ingredients
+          .map(ingredient => {
+            if (!ingredient.ingredientProduct) {
+              return Infinity; // Игнорируем ингредиенты, которые не удалось загрузить
+            }
+            const ingredientStock = ingredient.ingredientProduct.stock;
+            const requiredQuantity = ingredient.quantity;
+            if (requiredQuantity <= 0) return Infinity; // Избегаем деления на ноль
+            return Math.floor(ingredientStock / requiredQuantity);
+          })
+          .filter(portions => portions !== Infinity);
         
         // Берем минимальное значение (лимитирующий ингредиент)
-        productData.availablePortions = Math.min(...availablePortions);
-        productData.calculatedStock = Math.min(...availablePortions);
+        // Берем минимальное значение (лимитирующий ингредиент)
+        productData.availablePortions = availablePortions.length > 0 ? Math.min(...availablePortions) : 0;
+        productData.calculatedStock = availablePortions.length > 0 ? Math.min(...availablePortions) : 0;
       }
       
       return productData;
@@ -260,6 +612,7 @@ app.get('/api/products', async (req, res) => {
 
     res.json(productsWithCalculatedStock);
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -289,14 +642,21 @@ app.get('/api/products/:id', async (req, res) => {
       
       // Для составных товаров рассчитываем доступное количество
       if (productData.isComposite && productData.ingredients && Array.isArray(productData.ingredients) && productData.ingredients.length > 0) {
-        const availablePortions = productData.ingredients.map(ingredient => {
-          const ingredientStock = ingredient.ingredientProduct.stock;
-          const requiredQuantity = ingredient.quantity;
-          return Math.floor(ingredientStock / requiredQuantity);
-        });
+        const availablePortions = productData.ingredients
+          .map(ingredient => {
+            if (!ingredient.ingredientProduct) {
+              return Infinity; // Игнорируем ингредиенты, которые не удалось загрузить
+            }
+            const ingredientStock = ingredient.ingredientProduct.stock;
+            const requiredQuantity = ingredient.quantity;
+            if (requiredQuantity <= 0) return Infinity; // Избегаем деления на ноль
+            return Math.floor(ingredientStock / requiredQuantity);
+          })
+          .filter(portions => portions !== Infinity);
         
-        productData.availablePortions = Math.min(...availablePortions);
-        productData.calculatedStock = Math.min(...availablePortions);
+        // Берем минимальное значение (лимитирующий ингредиент)
+        productData.availablePortions = availablePortions.length > 0 ? Math.min(...availablePortions) : 0;
+        productData.calculatedStock = availablePortions.length > 0 ? Math.min(...availablePortions) : 0;
       }
       
       res.json(productData);
@@ -304,6 +664,7 @@ app.get('/api/products/:id', async (req, res) => {
       res.status(404).json({ message: 'Товар не найден' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -322,6 +683,7 @@ app.put('/api/products/:id', async (req, res) => {
       res.status(404).json({ message: 'Товар не найден' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -339,6 +701,7 @@ app.delete('/api/products/:id', async (req, res) => {
       res.status(404).json({ message: 'Товар не найден' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -376,7 +739,8 @@ app.post('/api/products/:id/ingredients', async (req, res) => {
     if (error.name === 'SequelizeUniqueConstraintError') {
       res.status(400).json({ message: 'Этот ингредиент уже добавлен в состав товара' });
     } else {
-      res.status(500).json({ message: error.message });
+      console.error('Error fetching products:', error);
+    res.status(500).json({ message: error.message });
     }
   }
 });
@@ -398,6 +762,7 @@ app.get('/api/products/:id/ingredients', async (req, res) => {
 
     res.json(ingredients);
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -433,6 +798,7 @@ app.put('/api/products/:id/ingredients/:ingredientId', async (req, res) => {
       res.status(404).json({ message: 'Ингредиент не найден' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -455,6 +821,7 @@ app.delete('/api/products/:id/ingredients/:ingredientId', async (req, res) => {
       res.status(404).json({ message: 'Ингредиент не найден' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -514,7 +881,8 @@ app.post('/api/orders', async (req, res) => {
           name: finalGuestName,
           visitCount: 0,
           totalOrdersAmount: 0,
-          averageCheck: 0
+          averageCheck: 0,
+          guestType: 'guest'
         });
         console.log(`Created new user: ${user.name} with ID: ${user.id}`);
       }
@@ -591,6 +959,7 @@ app.get('/api/orders', async (req, res) => {
     });
     res.json(orders);
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -606,6 +975,7 @@ app.get('/api/orders/:id', async (req, res) => {
       res.status(404).json({ message: 'Заказ не найден' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -627,6 +997,8 @@ app.put('/api/orders/:id', async (req, res) => {
       // Обновляем статистику пользователя при закрытии заказа
       if (updateData.status === 'completed' && order.userId) {
         await updateUserStatistics(order.userId, order.totalAmount);
+        // Обновляем статистику товаров пользователя
+        await updateUserProductStatistics(order.userId, order.orderItems);
       }
     }
     
@@ -671,6 +1043,7 @@ app.put('/api/orders/:id', async (req, res) => {
     res.json(order);
   } catch (error) {
     console.error('Error updating order:', error);
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -724,6 +1097,7 @@ app.put('/api/orders/:id/remove-item', async (req, res) => {
 
     res.json(order);
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -861,6 +1235,7 @@ app.put('/api/orders/:id/add-item', async (req, res) => {
 
     res.json(order);
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -885,6 +1260,7 @@ app.delete('/api/orders/:id', async (req, res) => {
       res.status(404).json({ message: 'Заказ не найден' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -906,6 +1282,7 @@ app.get('/api/categories', async (req, res) => {
     });
     res.json(categories);
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -923,6 +1300,7 @@ app.get('/api/categories/:id', async (req, res) => {
       res.status(404).json({ message: 'Категория не найдена' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });
@@ -958,6 +1336,7 @@ app.delete('/api/categories/:id', async (req, res) => {
       res.status(404).json({ message: 'Категория не найдена' });
     }
   } catch (error) {
+    console.error('Error fetching products:', error);
     res.status(500).json({ message: error.message });
   }
 });

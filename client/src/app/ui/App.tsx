@@ -10,6 +10,7 @@ import { CategoriesPage } from '../../pages/categories';
 import { CategoryFormPage } from '../../pages/category-form';
 import { OrdersPage } from '../../pages/orders';
 import { InventoryPage } from '../../pages/inventory';
+import { ProductAnalyticsPage } from '../../pages/product-analytics';
 // @ts-ignore
 import styles from './App.module.scss';
 
@@ -29,6 +30,7 @@ const App: React.FC = () => {
               <li><Link to="/inventory">Остатки</Link></li>
               {/* <li><Link to="/product-display">Выбор товаров</Link></li> */}
               <li><Link to="/orders">Заказы</Link></li>
+              <li><Link to="/analytics">Аналитика</Link></li>
             </ul>
           </nav>
         </header>
@@ -47,6 +49,7 @@ const App: React.FC = () => {
             <Route path="/categories/edit/:id" element={<CategoryFormPage />} />
             <Route path="/orders" element={<OrdersPage />} />
             <Route path="/inventory" element={<InventoryPage />} />
+            <Route path="/analytics" element={<ProductAnalyticsPage />} />
           </Routes>
         </main>
         <footer className={styles.footer}>

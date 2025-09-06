@@ -5,6 +5,7 @@ export interface User {
   totalOrdersAmount: number;
   visitCount: number;
   averageCheck: number;
+  guestType?: 'owner' | 'guest' | 'regular' | 'bartender';
 }
 
 export interface ApiResponse<T> {

@@ -1,0 +1,137 @@
+.inventoryPage {
+  padding: 20px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.copyButton {
+  background-color: #2196f3;
+  color: #fff;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.copyButton:hover {
+  background-color: #1976d2;
+}
+
+.title {
+  margin: 0;
+}
+
+.tableWrapper {
+  overflow: auto;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  padding: 8px 0;
+}
+
+.tableWrapper table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #ffffff;
+}
+
+.tableWrapper th, .tableWrapper td {
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+}
+
+/* Больше отступ слева у позиций (первая ячейка каждой строки товара) */
+.tableWrapper tbody td:first-child {
+  padding-left: 24px;
+}
+
+.tableWrapper th {
+  font-weight: 700;
+  color: #333;
+}
+
+.categoryHeader {
+  font-weight: 800;
+  padding-top: 18px;
+  padding-bottom: 8px;
+  background: transparent;
+  border-bottom: 1px solid #e6e6e6;
+  color: #666;
+  cursor: pointer;
+  /* Убираем левый паддинг у заголовков категорий */
+  padding-left: 0;
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.sortIndicator {
+  margin-left: 6px;
+  opacity: 0.6;
+  font-size: 12px;
+}
+
+.controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+
+  label {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    font-size: 14px;
+    color: #ddd;
+  }
+
+  select, input[type="number"], button {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #fff;
+    padding: 6px 8px;
+    border-radius: 6px;
+  }
+}
+
+.lowStock {
+  color: #ffb3b3;
+  font-weight: 700;
+}
+
+.statusBadge {
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.statusActive {
+  background: rgba(76, 175, 80, 0.15);
+  color: #8be48e;
+}
+
+.statusInactive {
+  background: rgba(244, 67, 54, 0.15);
+  color: #ff8a80;
+}
+
+/* Dark theme friendly */
+@media (prefers-color-scheme: dark) {
+  .tableWrapper { background: #2a2a2a; box-shadow: 0 2px 12px rgba(0,0,0,0.3); }
+  .tableWrapper table { background: #2a2a2a; }
+  .tableWrapper th, .tableWrapper td { border-bottom-color: rgba(255, 255, 255, 0.08); color: #f1f1f1; }
+  .tableWrapper th { color: #f1f1f1; }
+  .categoryHeader { color: #ddd; border-bottom-color: rgba(255, 255, 255, 0.16); }
+}

@@ -1,6 +1,7 @@
-import React from 'react';
-import { Modal } from 'antd';
-import type { Order } from '../../../../shared/api/order';
+import React, { useEffect, useState } from 'react';
+import { Modal, Divider, Select, InputNumber, Input, Button, List, Tag, message } from 'antd';
+import type { Order, WriteOff } from '../../../../shared/api/order';
+import { orderApi } from '../../../../shared/api/order';
 import styles from './ViewOrderModal.module.scss';
 
 interface ViewOrderModalProps {
@@ -15,6 +16,34 @@ export const ViewOrderModal: React.FC<ViewOrderModalProps> = ({
   onCancel
 }) => {
   if (!order) return null;
+
+  const [writeOffs, setWriteOffs] = useState<WriteOff[]>([]);
+  const [woLoading, setWoLoading] = useState(false);
+  const [woProductId, setWoProductId] = useState<number | undefined>(undefined);
+  const [woQty, setWoQty] = useState<number>(1);
+  const [woReason, setWoReason] = useState<string>('');
+
+  const loadWriteOffs = async () => {
+    if (!order) return;
+    try {
+      setWoLoading(true);
+      const { data } = await orderApi.getWriteOffs(order.id);
+      setWriteOffs(data);
+    } catch (e) {
+      message.error('Не удалось загрузить списания');
+      // eslint-disable-next-line no-console
+      console.error(e);
+    } finally {
+      setWoLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (open) {
+      loadWriteOffs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, order?.id]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString('ru-RU');
@@ -108,6 +137,88 @@ export const ViewOrderModal: React.FC<ViewOrderModalProps> = ({
               <p className={styles.noItems}>Состав заказа не указан</p>
             )}
           </div>
+        </div>
+
+        {/* Списания */}
+        <div className={styles.section}>
+          <h3>Списания</h3>
+          {order.status === 'active' && (
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 12, flexWrap: 'wrap' }}>
+              <Select
+                style={{ minWidth: 220 }}
+                placeholder="Товар из заказа"
+                value={woProductId}
+                onChange={(v) => setWoProductId(v)}
+                showSearch
+                optionFilterProp="label"
+              >
+                {order.orderItems.map((it, idx) => (
+                  <Select.Option key={`${it.productId}-${idx}`} value={it.productId} label={it.productName}>
+                    {it.productName}
+                  </Select.Option>
+                ))}
+              </Select>
+              <InputNumber
+                min={0.1}
+                step={0.1}
+                value={woQty}
+                onChange={(v) => setWoQty(Number(v) || 0)}
+                style={{ width: 120 }}
+              />
+              <Input
+                placeholder="Причина (необязательно)"
+                value={woReason}
+                onChange={(e) => setWoReason(e.target.value)}
+                style={{ minWidth: 220 }}
+                maxLength={120}
+              />
+              <Button
+                type="primary"
+                onClick={async () => {
+                  if (!woProductId || !woQty || woQty <= 0) {
+                    message.warning('Выберите товар и укажите количество > 0');
+                    return;
+                  }
+                  try {
+                    setWoLoading(true);
+                    await orderApi.createWriteOff(order.id, { productId: woProductId, quantity: woQty, reason: woReason || undefined });
+                    message.success('Списание добавлено');
+                    setWoReason('');
+                    setWoQty(1);
+                    setWoProductId(undefined);
+                    await loadWriteOffs();
+                  } catch (e) {
+                    message.error('Не удалось создать списание');
+                    // eslint-disable-next-line no-console
+                    console.error(e);
+                  } finally {
+                    setWoLoading(false);
+                  }
+                }}
+                loading={woLoading}
+              >
+                Списать
+              </Button>
+            </div>
+          )}
+          <List
+            bordered
+            size="small"
+            dataSource={writeOffs}
+            locale={{ emptyText: 'Списаний нет' }}
+            renderItem={(wo) => (
+              <List.Item>
+                <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+                  <div>
+                    <strong>{wo.product?.name || `#${wo.productId}`}</strong>{' '}
+                    <Tag color="volcano">−{parseFloat(wo.quantity.toString())}</Tag>
+                    <span style={{ color: '#999' }}>{new Date(wo.createdAt).toLocaleString('ru-RU')}</span>
+                  </div>
+                  <div style={{ color: '#666' }}>{wo.reason || '—'}</div>
+                </div>
+              </List.Item>
+            )}
+          />
         </div>
 
         {/* Комментарий */}

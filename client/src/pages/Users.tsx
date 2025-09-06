@@ -77,6 +77,7 @@ const Users: React.FC = () => {
               <th>ID</th>
               <th>Имя</th>
               <th>Телефон</th>
+              <th>Тип гостя</th>
               <th>Сумма заказов</th>
               <th>Количество посещений</th>
               <th>Средний чек</th>
@@ -85,16 +86,22 @@ const Users: React.FC = () => {
           </thead>
           <tbody>
             {users.map((user, index) => (
-              <tr key={index}>
-                <td>{index}</td>
+              <tr key={user.id ?? index}>
+                <td>{user.id ?? index}</td>
                 <td>{user.name}</td>
                 <td>{user.phone}</td>
+                <td>{
+                  user.guestType === 'owner' ? 'Владелец' :
+                  user.guestType === 'regular' ? 'Постоянник' :
+                  user.guestType === 'bartender' ? 'Бармен' :
+                  'Гость'
+                }</td>
                 <td>{user.totalOrdersAmount}</td>
                 <td>{user.visitCount}</td>
                 <td>{user.averageCheck}</td>
                 <td className={styles.actions}>
-                  <Link to={`/users/edit/${index}`} className={styles.editButton}>Изменить</Link>
-                  <button onClick={() => handleDelete(index)} className={styles.deleteButton}>Удалить</button>
+                  <Link to={`/users/edit/${user.id ?? index}`} className={styles.editButton}>Изменить</Link>
+                  <button onClick={() => handleDelete(user.id ?? index)} className={styles.deleteButton}>Удалить</button>
                 </td>
               </tr>
             ))}

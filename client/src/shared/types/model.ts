@@ -7,6 +7,7 @@ export interface User {
   totalOrdersAmount: number;
   visitCount: number;
   averageCheck: number;
+  guestType?: 'owner' | 'guest' | 'regular' | 'bartender';
   createdAt?: string;
   updatedAt?: string;
 }

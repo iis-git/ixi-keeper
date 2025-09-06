@@ -7,6 +7,17 @@ export interface OrderItem {
   price: number;
 }
 
+export interface WriteOff {
+  id: number;
+  orderId: number;
+  productId: number;
+  quantity: number;
+  reason?: string;
+  createdAt: string;
+  updatedAt: string;
+  product?: { id: number; name: string; unit?: string };
+}
+
 export interface Order {
   id: number;
   guestName: string;
@@ -77,4 +88,9 @@ export const orderApi = {
   // Добавление товара к заказу
   addItem: (orderId: number, productId: number, quantity: number = 1) =>
     api.put<Order>(`/orders/${orderId}/add-item`, { productId, quantity }),
+
+  // Списания
+  getWriteOffs: (orderId: number) => api.get<WriteOff[]>(`/orders/${orderId}/write-offs`),
+  createWriteOff: (orderId: number, payload: { productId: number; quantity: number; reason?: string }) =>
+    api.post<WriteOff>(`/orders/${orderId}/write-offs`, payload),
 };

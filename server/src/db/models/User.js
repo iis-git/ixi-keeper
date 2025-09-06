@@ -45,6 +45,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.FLOAT,
       defaultValue: 0,
     },
+    guestType: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: 'guest',
+      comment: 'Тип гостя: owner | guest | regular | bartender'
+    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: false,

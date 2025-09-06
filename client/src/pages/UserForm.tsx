@@ -14,7 +14,8 @@ const UserForm: React.FC = () => {
     phone: '',
     totalOrdersAmount: 0,
     visitCount: 0,
-    averageCheck: 0
+    averageCheck: 0,
+    guestType: 'guest'
   });
   
   const [loading, setLoading] = useState<boolean>(isEditMode);
@@ -31,7 +32,11 @@ const UserForm: React.FC = () => {
       console.log(`Отправка запроса на получение пользователя с ID ${id}...`);
       const response = await axios.get<User>(`http://localhost:3020/api/users/${id}`);
       console.log('Получен ответ:', response);
-      setFormData(response.data);
+      setFormData(prev => ({
+        ...prev,
+        ...response.data,
+        guestType: (response.data as any).guestType ?? 'guest'
+      }));
       setLoading(false);
     } catch (err) {
       console.error('Ошибка при получении данных пользователя:', err);
@@ -55,6 +60,11 @@ const UserForm: React.FC = () => {
       ...formData,
       [name]: name === 'name' || name === 'phone' ? value : Number(value)
     });
+  };
+
+  const handleGuestTypeChange = (e: React.ChangeEvent<HTMLSelectElement>): void => {
+    const value = e.target.value as 'owner' | 'guest' | 'regular' | 'bartender';
+    setFormData(prev => ({ ...prev, guestType: value }));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -123,6 +133,21 @@ const UserForm: React.FC = () => {
             onChange={handleChange}
             required
           />
+        </div>
+
+        <div className={styles.formGroup}>
+          <label htmlFor="guestType">Тип гостя</label>
+          <select
+            id="guestType"
+            name="guestType"
+            value={formData.guestType}
+            onChange={handleGuestTypeChange}
+          >
+            <option value="owner">Владелец</option>
+            <option value="guest">Гость</option>
+            <option value="regular">Постоянник</option>
+            <option value="bartender">Бармен</option>
+          </select>
         </div>
         
         <div className={styles.formGroup}>

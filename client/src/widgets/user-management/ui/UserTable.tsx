@@ -1,8 +1,9 @@
 import { FC, useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Input, Select, InputNumber, Button } from 'antd';
-import { EditOutlined, DeleteOutlined, SearchOutlined, FilterOutlined, CaretUpOutlined, CaretDownOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, SearchOutlined, FilterOutlined, CaretUpOutlined, CaretDownOutlined, BarChartOutlined } from '@ant-design/icons';
 import { DeleteUserButton } from '../../../features/user/delete/ui/DeleteUserButton';
+import { UserProductStatsModal } from '../../../features/user/product-stats';
 import { userApi } from '../../../shared/api/user';
 import { handleApiError } from '../../../shared/api/base';
 import { User } from '../../../entities/user/model/types';
@@ -24,6 +25,8 @@ export const UserTable: FC = () => {
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [statsModalVisible, setStatsModalVisible] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<User | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -169,6 +172,17 @@ export const UserTable: FC = () => {
     return sortDirection === 'asc' ? <CaretUpOutlined /> : <CaretDownOutlined />;
   };
 
+  const handleShowStats = (user: User) => {
+    console.log('Opening stats for user:', user);
+    setSelectedUser(user);
+    setStatsModalVisible(true);
+  };
+
+  const handleCloseStats = () => {
+    setStatsModalVisible(false);
+    setSelectedUser(null);
+  };
+
   if (loading) {
     return <div className={styles.loading}>Загрузка...</div>;
   }
@@ -300,6 +314,7 @@ export const UserTable: FC = () => {
                   Имя {getSortIcon('name')}
                 </th>
                 <th>Телефон</th>
+                <th>Тип гостя</th>
                 <th>Должник</th>
                 <th className={styles.sortableHeader} onClick={() => handleSort('totalOrdersAmount')}>
                   Сумма заказов {getSortIcon('totalOrdersAmount')}
@@ -323,14 +338,28 @@ export const UserTable: FC = () => {
                   </td>
                   <td>{user.phone || '—'}</td>
                   <td>
+                    {user.guestType === 'owner' ? 'Владелец' :
+                     user.guestType === 'regular' ? 'Постоянник' :
+                     user.guestType === 'bartender' ? 'Бармен' :
+                     'Гость'}
+                  </td>
+                  <td>
                     <span className={`${styles.statusBadge} ${user.isDebtor ? styles.debtor : styles.nonDebtor}`}>
                       {user.isDebtor ? 'Да' : 'Нет'}
                     </span>
                   </td>
                   <td>{user.totalOrdersAmount ? `${user.totalOrdersAmount} ₾` : '—'}</td>
                   <td>{user.visitCount || 0}</td>
-                  <td>{user.averageCheck ? `${user.averageCheck} ₾` : '—'}</td>
+                  <td>{user.averageCheck ? `${Math.round(user.averageCheck)} ₾` : '—'}</td>
                   <td className={styles.actions}>
+                    <Button
+                      type="text"
+                      size="small"
+                      icon={<BarChartOutlined />}
+                      onClick={() => handleShowStats(user)}
+                      className={`${styles.actionBtn} ${styles.statsBtn}`}
+                      title="Статистика заказов"
+                    />
                     <Link to={`/users/edit/${user.id}`} className={`${styles.actionBtn} ${styles.editBtn}`} title="Редактировать">
                       <EditOutlined />
                     </Link>
@@ -360,6 +389,16 @@ export const UserTable: FC = () => {
           </p>
         )}
       </div>
+
+      {/* Модальное окно статистики */}
+      {selectedUser && (
+        <UserProductStatsModal
+          userId={selectedUser.id}
+          userName={selectedUser.name}
+          visible={statsModalVisible}
+          onClose={handleCloseStats}
+        />
+      )}
     </div>
   );
 };
