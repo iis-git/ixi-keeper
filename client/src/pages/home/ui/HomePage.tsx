@@ -39,6 +39,7 @@ export const HomePage: FC = () => {
           refreshTrigger={refreshTrigger}
         />
       </div>
+
     </div>
   );
 };

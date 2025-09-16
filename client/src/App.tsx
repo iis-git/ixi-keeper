@@ -1,5 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import ShiftsPage from './pages/shifts/ui/ShiftsPage';
+import ShiftDetailsPage from './pages/shifts/ui/ShiftDetailsPage';
 import Home from './pages/home/ui/HomePage';
 import Users from './pages/Users';
 import UserForm from './pages/UserForm';
@@ -16,6 +18,7 @@ const App: React.FC = () => {
               <li><Link to="/">Главная</Link></li>
               <li><Link to="/users">Пользователи</Link></li>
               <li><Link to="/users/new">Добавить пользователя</Link></li>
+              <li><Link to="/shifts">Смены</Link></li>
             </ul>
           </nav>
         </header>
@@ -25,10 +28,12 @@ const App: React.FC = () => {
             <Route path="/users" element={<Users />} />
             <Route path="/users/new" element={<UserForm />} />
             <Route path="/users/edit/:id" element={<UserForm />} />
+            <Route path="/shifts" element={<ShiftsPage />} />
+            <Route path="/shifts/:id" element={<ShiftDetailsPage />} />
           </Routes>
         </main>
         <footer className="app-footer">
-          <p>© 2025 IXI-Keeper. Прав ни у кого нет.</p>
+          <p> 2025 IXI-Keeper. Прав ни у кого нет.</p>
         </footer>
       </div>
     </Router>

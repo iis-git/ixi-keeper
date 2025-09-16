@@ -23,7 +23,8 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
     totalOrdersAmount: 0,
     visitCount: 0,
     averageCheck: 0,
-    guestType: 'guest'
+    guestType: 'guest',
+    discountPercent: 0,
   });
   
   const [loading, setLoading] = useState<boolean>(isEditMode && !initialData);
@@ -41,7 +42,8 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
       setFormData(prev => ({
         ...prev,
         ...response.data,
-        guestType: (response.data as any).guestType ?? 'guest'
+        guestType: (response.data as any).guestType ?? 'guest',
+        discountPercent: Number((response.data as any).discountPercent ?? 0)
       }));
       setLoading(false);
     } catch (err: any) {
@@ -132,6 +134,20 @@ export const UserForm: FC<UserFormProps> = ({ userId, initialData }) => {
                 { value: 'regular', label: 'Постоянник' },
                 { value: 'bartender', label: 'Бармен' },
               ]}
+            />
+          </div>
+        </Col>
+        <Col xs={24} md={12}>
+          <div className={styles.formGroup}>
+            <label htmlFor="discountPercent">Постоянная скидка, %</label>
+            <InputNumber
+              id="discountPercent"
+              value={formData.discountPercent ?? 0}
+              min={0}
+              max={100}
+              step={0.5}
+              onChange={(v) => setFormData(prev => ({ ...prev, discountPercent: Number(v) || 0 }))}
+              style={{ width: '100%' }}
             />
           </div>
         </Col>

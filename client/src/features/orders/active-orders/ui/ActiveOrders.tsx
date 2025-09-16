@@ -3,6 +3,7 @@ import { EditOutlined, CloseOutlined } from '@ant-design/icons';
 import { orderApi, Order } from '../../../../shared/api/order';
 import { EditOrderModal } from '../../edit-order';
 import { PaymentModal } from '../../payment-modal';
+import { shiftApi } from '../../../../shared/api/shifts';
 import styles from './ActiveOrders.module.scss';
 
 interface ActiveOrdersProps {
@@ -21,6 +22,25 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [paymentModalVisible, setPaymentModalVisible] = useState(false);
   const [orderToPayId, setOrderToPayId] = useState<number | null>(null);
+  const [paymentBartenders, setPaymentBartenders] = useState<{ id: number; name: string }[]>([]);
+
+  const handleSetDiscount = async (orderId: number) => {
+    const input = prompt('Введите скидку для заказа, % (0-100):', '10');
+    if (input === null) return;
+    const p = Number(input);
+    if (isNaN(p) || p < 0 || p > 100) {
+      alert('Некорректное значение скидки. Допустимо 0..100');
+      return;
+    }
+    try {
+      await orderApi.setDiscount(orderId, p);
+      await fetchActiveOrders();
+    } catch (err) {
+      setError('Не удалось применить скидку');
+      // eslint-disable-next-line no-console
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     fetchActiveOrders();
@@ -84,16 +104,25 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
     setExpandedOrders(newExpanded);
   };
 
-  const handlePayOrder = (orderId: number) => {
+  const handlePayOrder = async (orderId: number) => {
     setOrderToPayId(orderId);
+    // Покажем модалку сразу, а список барменов дотащим в фоне
     setPaymentModalVisible(true);
+    try {
+      const resp = await shiftApi.getActive();
+      const data: any = resp.data;
+      const list = data && data.bartenders ? data.bartenders.map((b: any) => ({ id: b.user?.id ?? b.userId, name: b.user?.name ?? `#${b.userId}` })) : [];
+      setPaymentBartenders(list);
+    } catch (e) {
+      setPaymentBartenders([]);
+    }
   };
 
-  const handlePaymentConfirm = async (paymentMethod: 'cash' | 'card' | 'transfer', comment?: string) => {
+  const handlePaymentConfirm = async (paymentMethod: 'cash' | 'card' | 'transfer', comment?: string, closedByUserId?: number) => {
     if (!orderToPayId) return;
 
     try {
-      await orderApi.complete(orderToPayId, paymentMethod, comment);
+      await orderApi.complete(orderToPayId, paymentMethod, comment, closedByUserId);
       await fetchActiveOrders();
       // Убираем заказ из развернутых
       const newExpanded = new Set(expandedOrders);
@@ -225,7 +254,18 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
                     </div>
                   </div>
                   <div className={styles.totalAmount}>
-                    {parseFloat(order.totalAmount.toString()).toFixed(2)} ₾
+                    {Number(order.discountAmount || 0) > 0 ? (
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ textDecoration: 'line-through', color: '#999' }}>
+                          {parseFloat(order.totalAmount.toString()).toFixed(2)} ₾
+                        </div>
+                        <div style={{ fontWeight: 600 }}>
+                          {Number(order.netAmount ?? order.totalAmount).toFixed(2)} ₾
+                        </div>
+                      </div>
+                    ) : (
+                      <span>{parseFloat(order.totalAmount.toString()).toFixed(2)} ₾</span>
+                    )}
                   </div>
                   <div className={`${styles.expandIcon} ${isExpanded ? styles.expanded : ''}`}>
                     ▼
@@ -251,7 +291,21 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
                   </div>
                   
                   <div className={styles.orderTotal}>
-                    <strong>Итого: {parseFloat(order.totalAmount.toString()).toFixed(2)} ₾</strong>
+                    {Number(order.discountAmount || 0) > 0 ? (
+                      <div>
+                        <div style={{ textDecoration: 'line-through', color: '#999' }}>
+                          Итого: {parseFloat(order.totalAmount.toString()).toFixed(2)} ₾
+                        </div>
+                        <div style={{ fontWeight: 600 }}>
+                          К оплате: {Number(order.netAmount ?? order.totalAmount).toFixed(2)} ₾
+                        </div>
+                        <div style={{ color: '#cf1322', fontSize: 12 }}>
+                          Скидка: −{Number(order.discountAmount).toFixed(2)} ₾ ({Number(order.discountPercent || 0).toFixed(1)}%)
+                        </div>
+                      </div>
+                    ) : (
+                      <strong>Итого: {parseFloat(order.totalAmount.toString()).toFixed(2)} ₾</strong>
+                    )}
                   </div>
 
                   <div className={styles.orderActions}>
@@ -261,6 +315,13 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
                       title="Редактировать заказ"
                     >
                       <EditOutlined />
+                    </button>
+                    <button
+                      onClick={() => handleSetDiscount(order.id)}
+                      className={styles.actionBtn}
+                      title="Установить скидку"
+                    >
+                      %
                     </button>
                     <button
                       onClick={() => handlePayOrder(order.id)}
@@ -294,8 +355,22 @@ const ActiveOrders: React.FC<ActiveOrdersProps> = ({ onOrderToggle, openOrderId,
         visible={paymentModalVisible}
         onClose={handlePaymentModalClose}
         onPayment={handlePaymentConfirm}
-        orderTotal={orderToPayId ? parseFloat((activeOrders.find(o => o.id === orderToPayId)?.totalAmount || 0).toString()) : 0}
-        guestName={orderToPayId ? activeOrders.find(o => o.id === orderToPayId)?.guestName || '' : ''}
+        orderTotal={(
+          () => {
+            const ord = orderToPayId ? activeOrders.find(o => o.id === orderToPayId) : undefined;
+            if (!ord) return 0;
+            const val = (ord.netAmount ?? ord.totalAmount ?? 0) as any;
+            const num = Number(val);
+            return isNaN(num) ? 0 : num;
+          }
+        )()}
+        guestName={(
+          () => {
+            const ord = orderToPayId ? activeOrders.find(o => o.id === orderToPayId) : undefined;
+            return ord?.guestName || '';
+          }
+        )()}
+        bartenders={paymentBartenders}
       />
     </div>
   );

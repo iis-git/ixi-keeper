@@ -40,6 +40,34 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 0,
       comment: 'Общая сумма заказа'
     },
+    discountPercent: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Скидка на заказ в процентах'
+    },
+    discountAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Сумма скидки по заказу'
+    },
+    netAmount: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Итог к оплате после скидки'
+    },
+    shiftId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Ссылка на смену, в рамках которой создан заказ'
+    },
+    closedByUserId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      comment: 'Пользователь (бармен), который закрыл заказ'
+    },
     status: {
       type: DataTypes.ENUM('active', 'completed', 'cancelled'),
       defaultValue: 'active',

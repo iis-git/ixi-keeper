@@ -24,6 +24,10 @@ export interface Order {
   guestsCount?: number;
   orderItems: OrderItem[];
   totalAmount: number;
+  discountPercent?: number;
+  discountAmount?: number;
+  netAmount?: number;
+  shiftId?: number;
   status: 'active' | 'completed' | 'cancelled';
   paymentMethod?: 'cash' | 'card' | 'transfer';
   comment?: string;
@@ -66,11 +70,12 @@ export const orderApi = {
   delete: (id: number) => api.delete(`/orders/${id}`),
 
   // Специальные методы для работы с заказами
-  complete: (id: number, paymentMethod: 'cash' | 'card' | 'transfer', comment?: string) =>
+  complete: (id: number, paymentMethod: 'cash' | 'card' | 'transfer', comment?: string, closedByUserId?: number) =>
     api.put<Order>(`/orders/${id}`, { 
       status: 'completed', 
       paymentMethod,
-      comment 
+      comment,
+      closedByUserId,
     }),
 
   cancel: (id: number, comment?: string) =>
@@ -93,4 +98,8 @@ export const orderApi = {
   getWriteOffs: (orderId: number) => api.get<WriteOff[]>(`/orders/${orderId}/write-offs`),
   createWriteOff: (orderId: number, payload: { productId: number; quantity: number; reason?: string }) =>
     api.post<WriteOff>(`/orders/${orderId}/write-offs`, payload),
+
+  // Установка скидки на активный заказ
+  setDiscount: (orderId: number, discountPercent: number) =>
+    api.put<Order>(`/orders/${orderId}/discount`, { discountPercent }),
 };

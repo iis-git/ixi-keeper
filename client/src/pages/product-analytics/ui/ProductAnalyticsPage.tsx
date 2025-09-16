@@ -23,6 +23,7 @@ export const ProductAnalyticsPage: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<number | undefined>(undefined);
   const [customRange, setCustomRange] = useState<{ startDate?: string; endDate?: string }>({});
   const [dateRange, setDateRange] = useState<any>(null);
+  const [guestType, setGuestType] = useState<string | undefined>(undefined);
 
   const resetFilters = () => {
     setSearchTerm('');
@@ -31,6 +32,7 @@ export const ProductAnalyticsPage: React.FC = () => {
     setPeriod('all');
     setCustomRange({});
     setDateRange(null);
+    setGuestType(undefined);
     setPagination(prev => ({ ...prev, current: 1, pageSize: 15 }));
   };
 
@@ -62,6 +64,7 @@ export const ProductAnalyticsPage: React.FC = () => {
           categoryId: selectedCategory,
           startDate: customRange.startDate,
           endDate: customRange.endDate,
+          guestType: guestType,
         };
         console.log('Fetching analytics with params:', params);
         const response = await analyticsApi.getProductAnalytics(params);
@@ -78,7 +81,7 @@ export const ProductAnalyticsPage: React.FC = () => {
     };
 
     fetchData();
-  }, [pagination.current, pagination.pageSize, period, searchTerm, sortInfo, selectedCategory, customRange.startDate, customRange.endDate]);
+  }, [pagination.current, pagination.pageSize, period, searchTerm, sortInfo, selectedCategory, customRange.startDate, customRange.endDate, guestType]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('ru-RU', {
@@ -247,8 +250,8 @@ export const ProductAnalyticsPage: React.FC = () => {
       </div>
 
       {/* Сводная статистика */}
-      <Row gutter={16} className={styles.statsRow}>
-        <Col span={6}>
+      <Row gutter={[16, 16]} className={styles.statsRow}>
+        <Col span={4}>
           <Card>
             <Statistic
               title="Общая выручка"
@@ -257,7 +260,7 @@ export const ProductAnalyticsPage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card>
             <Statistic
               title="Общая прибыль"
@@ -267,7 +270,7 @@ export const ProductAnalyticsPage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card>
             <Statistic
               title="Всего заказов"
@@ -275,7 +278,7 @@ export const ProductAnalyticsPage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card>
             <Statistic
               title="Средняя маржа"
@@ -285,7 +288,7 @@ export const ProductAnalyticsPage: React.FC = () => {
             />
           </Card>
         </Col>
-        <Col span={6}>
+        <Col span={4}>
           <Card>
             <Statistic
               title="Списания (себестоимость)"
@@ -324,6 +327,22 @@ export const ProductAnalyticsPage: React.FC = () => {
               {categories.map(cat => (
                 <Option key={cat.id} value={cat.id}>{cat.name}</Option>
               ))}
+            </Select>
+          </Col>
+
+          <Col xs={24} md={4}>
+            <Select
+              allowClear
+              placeholder="Тип гостя"
+              value={guestType}
+              onChange={(value) => { setGuestType(value); setPagination(p => ({...p, current: 1})); }}
+              style={{ width: `100%` }}
+              size="large"
+            >
+              <Option value="owner">Владелец</Option>
+              <Option value="regular">Постоянный</Option>
+              <Option value="guest">Гость</Option>
+              <Option value="bartender">Бармен</Option>
             </Select>
           </Col>
 

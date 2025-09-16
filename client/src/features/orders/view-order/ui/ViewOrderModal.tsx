@@ -96,8 +96,19 @@ export const ViewOrderModal: React.FC<ViewOrderModalProps> = ({
               </span>
             </div>
             <div className={styles.infoItem}>
-              <span className={styles.label}>Общая сумма:</span>
+              <span className={styles.label}>Валовая сумма:</span>
               <span className={styles.value}>{parseFloat(order.totalAmount.toString()).toFixed(2)} ₾</span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.label}>Скидка:</span>
+              <span className={styles.value}>
+                {(order.discountAmount ?? 0).toFixed ? (order.discountAmount as number).toFixed(2) : Number(order.discountAmount || 0).toFixed(2)} ₾
+                {` (`}{Number(order.discountPercent || 0).toFixed(1)}%{`)`}
+              </span>
+            </div>
+            <div className={styles.infoItem}>
+              <span className={styles.label}>Итог к оплате:</span>
+              <span className={styles.value}>{Number(order.netAmount ?? (order.totalAmount || 0)).toFixed(2)} ₾</span>
             </div>
             <div className={styles.infoItem}>
               <span className={styles.label}>Способ оплаты:</span>
@@ -111,6 +122,51 @@ export const ViewOrderModal: React.FC<ViewOrderModalProps> = ({
             )}
           </div>
         </div>
+
+        {/* Скидка на активный заказ */}
+        {order.status === 'active' && (
+          <div className={styles.section}>
+            <h3>Скидка на заказ</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+              <InputNumber
+                min={0}
+                max={100}
+                step={0.5}
+                defaultValue={Number(order.discountPercent || 0)}
+                onChange={(val) => {
+                  // временно сохраняем во внутреннее состояние, можно улучшить до useState при необходимости
+                  (order as any)._pendingDiscount = Number(val) || 0;
+                }}
+                style={{ width: 140 }}
+              />
+              <Button
+                type="primary"
+                onClick={async () => {
+                  const p = Number((order as any)._pendingDiscount ?? order.discountPercent ?? 0);
+                  if (p < 0 || p > 100) {
+                    message.warning('Скидка должна быть от 0 до 100%');
+                    return;
+                  }
+                  try {
+                    await orderApi.setDiscount(order.id, p);
+                    message.success('Скидка применена');
+                    // Обновляем данные заказа в модалке
+                    const { data } = await orderApi.getById(order.id);
+                    (order as any).discountPercent = data.discountPercent;
+                    (order as any).discountAmount = data.discountAmount;
+                    (order as any).netAmount = data.netAmount;
+                  } catch (e) {
+                    message.error('Не удалось применить скидку');
+                    // eslint-disable-next-line no-console
+                    console.error(e);
+                  }
+                }}
+              >
+                Применить
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Состав заказа */}
         <div className={styles.section}>

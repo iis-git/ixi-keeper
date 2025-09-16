@@ -36,6 +36,24 @@ const OrdersPage: React.FC = () => {
     }
   };
 
+  const handleSetDiscount = async (orderId: number) => {
+    const input = prompt('Введите скидку для заказа, % (0-100):', '10');
+    if (input === null) return;
+    const p = Number(input);
+    if (isNaN(p) || p < 0 || p > 100) {
+      alert('Некорректное значение скидки. Допустимо 0..100');
+      return;
+    }
+    try {
+      await orderApi.setDiscount(orderId, p);
+      await fetchOrders();
+    } catch (err) {
+      setError('Не удалось применить скидку');
+      // eslint-disable-next-line no-console
+      console.error(err);
+    }
+  };
+
   const filterOrders = () => {
     let filtered = [...orders];
 
@@ -213,7 +231,23 @@ const OrdersPage: React.FC = () => {
                   <td>{typeof order.guestsCount === 'number' ? order.guestsCount : '—'}</td>
                   <td>{formatDate(order.createdAt)}</td>
                   <td>{getStatusBadge(order.status)}</td>
-                  <td>{parseFloat(order.totalAmount.toString()).toFixed(2)} ₾</td>
+                  <td>
+                    {Number(order.discountAmount || 0) > 0 ? (
+                      <div>
+                        <div style={{ textDecoration: 'line-through', color: '#999' }}>
+                          {parseFloat(order.totalAmount.toString()).toFixed(2)} ₾
+                        </div>
+                        <div style={{ fontWeight: 600 }}>
+                          {Number(order.netAmount ?? order.totalAmount).toFixed(2)} ₾
+                        </div>
+                        <div style={{ color: '#cf1322', fontSize: 12 }}>
+                          −{Number(order.discountAmount).toFixed(2)} ₾ ({Number(order.discountPercent || 0).toFixed(1)}%)
+                        </div>
+                      </div>
+                    ) : (
+                      <span>{parseFloat(order.totalAmount.toString()).toFixed(2)} ₾</span>
+                    )}
+                  </td>
                   <td>{getPaymentMethodText(order.paymentMethod)}</td>
                   <td className={styles.comment}>
                     {order.comment ? (
@@ -236,6 +270,13 @@ const OrdersPage: React.FC = () => {
                       </button>
                       {order.status === 'active' && (
                         <>
+                          <button
+                            onClick={() => handleSetDiscount(order.id)}
+                            className={styles.actionBtn}
+                            title="Установить скидку"
+                          >
+                            %
+                          </button>
                           <button
                             onClick={() => handleStatusChange(order.id, 'completed')}
                             className={`${styles.actionBtn} ${styles.completeBtn}`}

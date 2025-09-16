@@ -45,6 +45,7 @@ export const analyticsApi = {
     sortOrder?: 'ASC' | 'DESC';
     startDate?: string; // YYYY-MM-DD
     endDate?: string;   // YYYY-MM-DD
+    guestType?: string; // owner | guest | regular | bartender
   }): Promise<GetProductAnalyticsResponse> => {
     const { data } = await api.get<GetProductAnalyticsResponse>('/products/analytics', { params });
     return data;

@@ -45,6 +45,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.FLOAT,
       defaultValue: 0,
     },
+    discountPercent: {
+      type: DataTypes.DECIMAL(5, 2),
+      allowNull: false,
+      defaultValue: 0,
+      comment: 'Постоянная скидка пользователя в процентах'
+    },
     guestType: {
       type: DataTypes.STRING,
       allowNull: false,

@@ -8,6 +8,7 @@ export interface User {
   visitCount: number;
   averageCheck: number;
   guestType?: 'owner' | 'guest' | 'regular' | 'bartender';
+  discountPercent?: number;
   createdAt?: string;
   updatedAt?: string;
 }

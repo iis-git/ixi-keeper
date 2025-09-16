@@ -1,3 +1,4 @@
+// Shift endpoints are registered after app initialization below
 require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
@@ -6,7 +7,7 @@ const app = express();
 const port = process.env.PORT || 3020;
 
 // Импортируем модели
-const { User, Product, Category, Order, UserProductStats, ProductStatistics, ProductIngredient, WriteOff } = require('./db/models');
+const { User, Product, Category, Order, UserProductStats, ProductStatistics, ProductIngredient, WriteOff, Shift, ShiftBartender } = require('./db/models');
 const { Op } = require('sequelize');
 
 // Добавляем CORS middleware для обработки запросов с клиента
@@ -23,9 +24,234 @@ app.use((req, res, next) => {
   next();
 });
 
+// Заказы конкретной смены (минимальные поля для отчётов)
+app.get('/api/shifts/:id/orders', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { Order } = require('./db/models');
+    const orders = await Order.findAll({
+      where: { shiftId: id },
+      attributes: ['id','guestName','status','paymentMethod','totalAmount','discountAmount','netAmount','guestsCount','closedAt','createdAt','closedByUserId']
+    });
+    res.json(orders);
+  } catch (e) {
+    console.error('Error fetching shift orders:', e);
+    res.status(500).json({ message: 'Не удалось получить заказы смены' });
+  }
+});
+
 // Обеспечиваем парсинг тела запросов до объявления маршрутов списаний
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+// ======== Shift helpers and endpoints (registered after app init) ========
+async function getActiveShift() {
+  const { Shift } = require('./db/models');
+  const active = await Shift.findOne({ where: { status: 'open' }, order: [['openedAt', 'DESC']] });
+  // Debug: log whether active shift exists
+  console.log('[API] getActiveShift ->', active ? { id: active.id, openedAt: active.openedAt } : 'none');
+  return active;
+}
+
+app.get('/api/shifts/active', async (req, res) => {
+  try {
+    const { ShiftBartender, User } = require('./db/models');
+    console.log('[API] GET /api/shifts/active');
+    const shift = await getActiveShift();
+    if (!shift) {
+      console.log('[API] /api/shifts/active -> 204 No active shift');
+      return res.status(204).send();
+    }
+    const bartenders = await ShiftBartender.findAll({ where: { shiftId: shift.id }, include: [{ model: User, as: 'user', attributes: ['id','name'] }] });
+    console.log('[API] /api/shifts/active -> shift', { id: shift.id }, 'bartenders:', bartenders.length);
+    res.json({ shift, bartenders });
+  } catch (e) {
+    console.error('Error fetching active shift:', e);
+    res.status(500).json({ message: 'Не удалось получить активную смену' });
+  }
+});
+
+app.get('/api/shifts', async (req, res) => {
+  try {
+    console.log('[API] GET /api/shifts');
+    const { Shift } = require('./db/models');
+    const shifts = await Shift.findAll({ order: [['openedAt', 'DESC']] });
+    console.log('[API] /api/shifts -> count:', Array.isArray(shifts) ? shifts.length : 'n/a');
+    res.json(shifts);
+  } catch (e) {
+    console.error('Error fetching shifts:', e);
+    res.status(500).json({ message: 'Не удалось получить список смен' });
+  }
+});
+
+app.get('/api/shifts/:id', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { Shift, ShiftBartender, User, Order } = require('./db/models');
+    const shift = await Shift.findByPk(id);
+    if (!shift) return res.status(404).json({ message: 'Смена не найдена' });
+    const bartenders = await ShiftBartender.findAll({ where: { shiftId: id }, include: [{ model: User, as: 'user', attributes: ['id','name'] }] });
+
+    // Optionally recompute summary from orders if absent or on demand via query param
+    const wantRecompute = String(req.query.recompute || '').toLowerCase() === '1' || String(req.query.recompute || '').toLowerCase() === 'true';
+    let computedSummary = null;
+    try {
+      const orders = await Order.findAll({ where: { shiftId: id } });
+      const computeShiftSummary = (orders) => {
+        const list = Array.isArray(orders) ? orders : [];
+        const completed = list.filter(o => o.status === 'completed');
+        const cancelled = list.filter(o => o.status === 'cancelled');
+        const gross = list.reduce((s,o)=> s + Number(o.totalAmount||0), 0);
+        const discount = list.reduce((s,o)=> s + Number(o.discountAmount||0), 0);
+        const net = list.reduce((s,o)=> s + Number((o.netAmount ?? o.totalAmount) || 0), 0);
+        const avgCheckNet = completed.length
+          ? completed.reduce((s,o)=> s + Number((o.netAmount ?? o.totalAmount) || 0), 0) / completed.length
+          : 0;
+        const guests = completed.reduce((s,o)=> s + Number(o.guestsCount||0), 0);
+        const payments = (()=>{
+          const map = { cash: 0, card: 0, transfer: 0 };
+          for (const o of completed) {
+            const amt = Number((o.netAmount ?? o.totalAmount) || 0);
+            if (o.paymentMethod && Object.prototype.hasOwnProperty.call(map, o.paymentMethod)) {
+              map[o.paymentMethod] += amt;
+            }
+          }
+          return map;
+        })();
+        return {
+          orders: {
+            total: list.length,
+            completed: completed.length,
+            cancelled: cancelled.length,
+          },
+          revenue: { gross, discount, net },
+          avgCheckNet,
+          guests,
+          payments,
+        };
+      };
+
+      const isEmptySummary = !shift.summary || (typeof shift.summary === 'object' && Object.keys(shift.summary).length === 0);
+      if (wantRecompute || isEmptySummary) {
+        computedSummary = computeShiftSummary(orders);
+      }
+
+      const responseShift = shift.toJSON();
+      if (computedSummary) {
+        responseShift.summary = computedSummary;
+      }
+      console.log('[API] GET /api/shifts/:id ->', { id, recompute: !!computedSummary, orders: orders.length });
+      return res.json({ shift: responseShift, bartenders });
+    } catch (e) {
+      console.error('[API] /api/shifts/:id summary compute error', e);
+      // Возвращаем без вычисленного summary, если произошла ошибка вычисления
+      return res.json({ shift, bartenders });
+    }
+  } catch (e) {
+    console.error('Error fetching shift:', e);
+    res.status(500).json({ message: 'Не удалось получить смену' });
+  }
+});
+
+app.post('/api/shifts/open', async (req, res) => {
+  try {
+    const { bartenders = [], openingNote, openingCashAmount, openedByUserId } = req.body;
+    const { Shift, ShiftBartender } = require('./db/models');
+    const existing = await getActiveShift();
+    if (existing) return res.status(400).json({ message: 'Уже есть активная смена' });
+    const shift = await Shift.create({ openedAt: new Date(), status: 'open', openingNote: openingNote || null, openingCashAmount: openingCashAmount ?? null, openedByUserId: openedByUserId || null });
+    for (const uid of bartenders) {
+      await ShiftBartender.create({ shiftId: shift.id, userId: uid });
+    }
+    res.status(201).json(shift);
+  } catch (e) {
+    console.error('Error opening shift:', e);
+    res.status(500).json({ message: 'Не удалось открыть смену' });
+  }
+});
+
+app.post('/api/shifts/:id/close', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { closingNote, closingCashAmount } = req.body;
+    const { Shift, Order } = require('./db/models');
+    const shift = await Shift.findByPk(id);
+    if (!shift) return res.status(404).json({ message: 'Смена не найдена' });
+    if (shift.status !== 'open') return res.status(400).json({ message: 'Смена уже закрыта' });
+
+    // Агрегации по заказам смены
+    const orders = await Order.findAll({ where: { shiftId: id } });
+    const summary = {
+      orders: {
+        total: orders.length,
+        completed: orders.filter(o => o.status === 'completed').length,
+        cancelled: orders.filter(o => o.status === 'cancelled').length,
+      },
+      revenue: {
+        gross: orders.reduce((s,o)=> s + Number(o.totalAmount||0), 0),
+        discount: orders.reduce((s,o)=> s + Number(o.discountAmount||0), 0),
+        net: orders.reduce((s,o)=> s + Number((o.netAmount ?? o.totalAmount) || 0), 0),
+      },
+      avgCheckNet: (()=>{
+        const comps = orders.filter(o=>o.status==='completed');
+        const net = comps.reduce((s,o)=> s + Number((o.netAmount ?? o.totalAmount) || 0), 0);
+        return comps.length ? net / comps.length : 0;
+      })(),
+      guests: orders.filter(o=>o.status==='completed').reduce((s,o)=> s + Number(o.guestsCount||0), 0),
+      payments: (()=>{
+        const map = { cash: 0, card: 0, transfer: 0 };
+        for (const o of orders.filter(o=>o.status==='completed')) {
+          const amt = Number((o.netAmount ?? o.totalAmount) || 0);
+          if (o.paymentMethod && map.hasOwnProperty(o.paymentMethod)) map[o.paymentMethod] += amt;
+        }
+        return map;
+      })(),
+    };
+
+    await shift.update({ status: 'closed', closedAt: new Date(), closingNote: closingNote || null, closingCashAmount: closingCashAmount ?? null, summary });
+    res.json(shift);
+  } catch (e) {
+    console.error('Error closing shift:', e);
+    res.status(500).json({ message: 'Не удалось закрыть смену' });
+  }
+});
+// Хелпер: пересчет сумм заказа с учетом скидки пользователя или ручной скидки заказа
+async function recalcOrderTotals(orderInstance) {
+  try {
+    // Не пересчитываем исторические заказы (completed/cancelled),
+    // чтобы изменение пользовательской скидки не влияло задним числом
+    if (orderInstance.status && orderInstance.status !== 'active') {
+      return orderInstance;
+    }
+    // Gross сумма (валовая) из позиций
+    const items = Array.isArray(orderInstance.orderItems) ? orderInstance.orderItems : [];
+    const gross = items.reduce((sum, it) => sum + (Number(it.price) * Number(it.quantity)), 0);
+
+    // Определяем эффективную скидку: приоритет у ручной скидки заказа
+    let userDiscount = 0;
+    if (orderInstance.userId) {
+      const u = await User.findByPk(orderInstance.userId);
+      if (u && u.discountPercent) userDiscount = parseFloat(u.discountPercent);
+    }
+    const manual = orderInstance.discountPercent ? parseFloat(orderInstance.discountPercent) : 0;
+    const effectivePercent = Math.max(0, Math.min(100, manual > 0 ? manual : userDiscount));
+
+    const discountAmount = +(gross * (effectivePercent / 100)).toFixed(2);
+    const netAmount = +(gross - discountAmount).toFixed(2);
+
+    await orderInstance.update({
+      totalAmount: gross,
+      discountAmount,
+      netAmount,
+      // discountPercent оставляем как есть (ручная). Если 0 — действует пользовательская скидка.
+    }, { fields: ['totalAmount', 'discountAmount', 'netAmount'] });
+
+    return orderInstance;
+  } catch (e) {
+    console.error('recalcOrderTotals error:', e);
+    return orderInstance;
+  }
+}
 
 // Списания товаров для заказа
 app.get('/api/orders/:id/write-offs', async (req, res) => {
@@ -386,6 +612,7 @@ app.get('/api/users/:id/product-stats', async (req, res) => {
 app.get('/api/products/analytics', async (req, res) => {
   try {
     const { period, page = 1, pageSize = 15, categoryId, sortBy, sortOrder = 'DESC', search, startDate, endDate } = req.query;
+    const guestType = req.query.guestType;
 
     const where = {};
     if (search) {
@@ -474,6 +701,172 @@ app.get('/api/products/analytics', async (req, res) => {
       } else {
         console.log(`[Analytics API] Warning: sortBy field '${sortBy}' is not sortable.`);
       }
+    }
+
+    // Если указан тип гостя, считаем статистику на основе UserProductStats с фильтром по пользователям этого типа
+    if (guestType) {
+      // Загружаем строки статистики пользователя-товара с фильтрами по дате (аппроксимация как и раньше — по lastOrderDate)
+      const upsWhere = {};
+      if (where.lastOrderDate) {
+        upsWhere.lastOrderDate = where.lastOrderDate;
+      }
+
+      const upsInclude = [
+        {
+          ...productInclude
+        },
+        {
+          model: User,
+          as: 'user',
+          required: true,
+          where: { guestType }
+        }
+      ];
+
+      const upsRows = await UserProductStats.findAll({
+        where: upsWhere,
+        include: upsInclude
+      });
+
+      // Агрегация по productId в памяти
+      const agg = new Map();
+      for (const row of upsRows) {
+        const json = row.toJSON();
+        // Поиск/категория фильтр (по имени продукта и категории)
+        const p = json.product;
+        if (search) {
+          const name = (json.productName || (p && p.name) || '').toLowerCase();
+          if (!name.includes(String(search).toLowerCase())) continue;
+        }
+        if (categoryId && (!p || p.categoryId !== Number(categoryId))) continue;
+
+        const key = json.productId;
+        if (!agg.has(key)) {
+          agg.set(key, {
+            productId: json.productId,
+            productName: p ? p.name : json.productName,
+            totalQuantity: 0,
+            totalAmount: 0,
+            totalCostAmount: 0,
+            orderCount: 0,
+            lastOrderDate: null,
+            product: p || null
+          });
+        }
+        const a = agg.get(key);
+        a.totalQuantity += parseFloat(json.totalQuantity || 0);
+        a.totalAmount += parseFloat(json.totalAmount || 0);
+        a.totalCostAmount += parseFloat(json.totalCostAmount || 0);
+        a.orderCount += parseInt(json.orderCount || 0);
+        if (!a.lastOrderDate || (json.lastOrderDate && new Date(json.lastOrderDate) > new Date(a.lastOrderDate))) {
+          a.lastOrderDate = json.lastOrderDate;
+        }
+      }
+
+      // Списания: фильтруем по заказам пользователей выбранного типа гостя и по диапазону дат
+      const writeOffWhere = {};
+      if (where.lastOrderDate) {
+        writeOffWhere.createdAt = where.lastOrderDate;
+      }
+      const writeOffsRaw = await WriteOff.findAll({
+        attributes: [
+          'productId',
+          [sequelize.fn('SUM', sequelize.col('quantity')), 'totalWriteOffQty'],
+        ],
+        where: writeOffWhere,
+        include: [
+          {
+            model: Order,
+            as: 'order',
+            required: true,
+            include: [
+              {
+                model: User,
+                as: 'user',
+                required: true,
+                where: { guestType }
+              }
+            ]
+          }
+        ],
+        group: ['productId']
+      });
+      const writeOffMap = new Map();
+      for (const w of writeOffsRaw) {
+        const json = w.toJSON();
+        writeOffMap.set(json.productId, parseFloat(json.totalWriteOffQty));
+      }
+
+      // Преобразуем в массив и обогащаем как раньше
+      let enrichedStats = Array.from(agg.values()).map((rest) => {
+        const product = rest.product;
+        const totalAmount = parseFloat(rest.totalAmount);
+        const totalCostAmount = parseFloat(rest.totalCostAmount || 0);
+        const profit = totalAmount - totalCostAmount;
+        const profitMargin = totalAmount > 0 ? (profit / totalAmount) * 100 : 0;
+
+        const writeOffQty = writeOffMap.get(rest.productId) || 0;
+        const currentCostPrice = product ? parseFloat(product.costPrice) : 0;
+        const writeOffCostAmount = writeOffQty * currentCostPrice;
+        const netQuantity = parseFloat(rest.totalQuantity) - writeOffQty;
+        const netAmount = totalAmount;
+        const netProfit = (totalAmount - totalCostAmount) - writeOffCostAmount;
+        const netMargin = totalAmount > 0 ? (netProfit / totalAmount) * 100 : 0;
+
+        return {
+          productId: rest.productId,
+          productName: rest.productName,
+          totalQuantity: parseFloat(rest.totalQuantity),
+          totalAmount,
+          totalCostAmount,
+          profit,
+          profitMargin,
+          orderCount: rest.orderCount,
+          lastOrderDate: rest.lastOrderDate,
+          currentPrice: product ? parseFloat(product.price) : 0,
+          currentCostPrice,
+          unit: product ? product.unit : 'шт.',
+          category: product ? product.category : null,
+          averageOrderQuantity: rest.orderCount > 0 ? parseFloat(rest.totalQuantity) / rest.orderCount : 0,
+          writeOffQuantity: writeOffQty,
+          writeOffCostAmount,
+          netQuantity,
+          netAmount,
+          netProfit,
+          netMargin,
+        };
+      });
+
+      // Сортировка
+      const dir = String(sortOrder || 'DESC').toUpperCase() === 'ASC' ? 1 : -1;
+      const sortKey = String(sortBy || 'totalAmount');
+      const getSortVal = (x) => {
+        switch (sortKey) {
+          case 'productName': return (x.productName || '').toLowerCase();
+          case 'totalQuantity': return x.totalQuantity;
+          case 'totalAmount': return x.totalAmount;
+          case 'profit': return x.profit;
+          case 'profitMargin': return x.profitMargin;
+          case 'orderCount': return x.orderCount;
+          case 'lastOrderDate': return x.lastOrderDate ? new Date(x.lastOrderDate).getTime() : 0;
+          default: return x.totalAmount;
+        }
+      };
+      enrichedStats.sort((a, b) => {
+        const va = getSortVal(a);
+        const vb = getSortVal(b);
+        if (va < vb) return -1 * dir;
+        if (va > vb) return 1 * dir;
+        return 0;
+      });
+
+      // Пагинация в памяти
+      const total = enrichedStats.length;
+      const p = parseInt(page, 10);
+      const ps = parseInt(pageSize, 10);
+      const paged = enrichedStats.slice((p - 1) * ps, (p - 1) * ps + ps);
+
+      return res.json({ stats: paged, total, page: p, pageSize: ps });
     }
 
     const { count, rows: stats } = await ProductStatistics.findAndCountAll({
@@ -830,11 +1223,16 @@ app.delete('/api/products/:id/ingredients/:ingredientId', async (req, res) => {
 app.post('/api/orders', async (req, res) => {
   try {
     const { guestName, orderItems, totalAmount, status, paymentMethod, comment, guestId, guestsCount } = req.body;
+    // Требуем активную смену для создания заказа
+    const activeShift = await getActiveShift();
+    if (!activeShift) {
+      return res.status(409).json({ message: 'Нет активной смены. Откройте смену, чтобы создавать заказы.' });
+    }
     
     let userId = null;
     let finalGuestName = guestName?.trim() || '';
     
-    // Определяем нужно ли назначить заказ пользователю с id=4
+    // Определяем нужно ли назначить заказ "дефолтному" гостю
     const needsDefaultUser = () => {
       const name = finalGuestName.toLowerCase();
       if (!name) return true; // Пустое имя
@@ -848,27 +1246,36 @@ app.post('/api/orders', async (req, res) => {
     if (guestId) {
       userId = guestId;
     } else if (needsDefaultUser()) {
-      userId = 4; // Назначаем пользователю с id=4
-      
-      // Генерируем имя с номером если нужно
+      // Ищем/создаем "дефолтного" гостя, чтобы не зависеть от фиксированного id
+      const [defaultGuest] = await User.findOrCreate({
+        where: { name: 'Гость' },
+        defaults: {
+          name: 'Гость',
+          visitCount: 0,
+          totalOrdersAmount: 0,
+          averageCheck: 0,
+          guestType: 'guest'
+        }
+      });
+      userId = defaultGuest.id;
+
+      // Генерируем имя с номером (Гость N) на сегодня
       if (!finalGuestName || ['стол', 'бар', 'улица', 'гость'].includes(finalGuestName.toLowerCase())) {
-        // Получаем количество заказов пользователя с id=4 за сегодня для нумерации
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
-        
+
         const todayOrdersCount = await Order.count({
           where: {
-            userId: 4,
+            userId: userId,
             createdAt: {
               [Op.gte]: today,
               [Op.lt]: tomorrow
             }
           }
         });
-        
-        const baseWord = finalGuestName || 'Гость';
+        const baseWord = 'Гость';
         finalGuestName = `${baseWord} ${todayOrdersCount + 1}`;
       }
     } else if (finalGuestName) {
@@ -899,7 +1306,8 @@ app.post('/api/orders', async (req, res) => {
       status: status || 'active',
       paymentMethod,
       comment,
-      guestsCount: typeof guestsCount === 'number' && guestsCount > 0 ? guestsCount : 1
+      guestsCount: typeof guestsCount === 'number' && guestsCount > 0 ? guestsCount : 1,
+      shiftId: activeShift.id
     });
     
     // Статистика пользователя обновляется только при закрытии заказа, не при создании
@@ -942,6 +1350,9 @@ app.post('/api/orders', async (req, res) => {
       }
     }
     
+    // Пересчет итогов с учетом скидок пользователя / ручной скидки заказа
+    await recalcOrderTotals(order);
+
     res.status(201).json(order);
   } catch (error) {
     res.status(400).json({ message: error.message });
@@ -957,6 +1368,12 @@ app.get('/api/orders', async (req, res) => {
       where: whereClause,
       order: [['createdAt', 'DESC']]
     });
+    // Для активных заказов пересчитываем скидки на лету (учтя текущую скидку пользователя, если нет ручной)
+    for (const o of orders) {
+      if (o.status === 'active') {
+        await recalcOrderTotals(o);
+      }
+    }
     res.json(orders);
   } catch (error) {
     console.error('Error fetching products:', error);
@@ -970,6 +1387,9 @@ app.get('/api/orders/:id', async (req, res) => {
     const order = await Order.findByPk(id);
     
     if (order) {
+      if (order.status === 'active') {
+        await recalcOrderTotals(order);
+      }
       res.json(order);
     } else {
       res.status(404).json({ message: 'Заказ не найден' });
@@ -993,10 +1413,17 @@ app.put('/api/orders/:id', async (req, res) => {
     // Если статус меняется на completed или cancelled, устанавливаем closedAt
     if (updateData.status && (updateData.status === 'completed' || updateData.status === 'cancelled')) {
       updateData.closedAt = new Date();
+      if (updateData.closedByUserId) {
+        // Сохраняем, кто закрыл заказ (бармен)
+        order.closedByUserId = updateData.closedByUserId;
+      }
       
       // Обновляем статистику пользователя при закрытии заказа
       if (updateData.status === 'completed' && order.userId) {
-        await updateUserStatistics(order.userId, order.totalAmount);
+        // Перед закрытием пересчитаем скидки/итоги на случай, если они изменились
+        await recalcOrderTotals(order);
+        const finalAmount = order.netAmount != null ? parseFloat(order.netAmount) : parseFloat(order.totalAmount);
+        await updateUserStatistics(order.userId, finalAmount);
         // Обновляем статистику товаров пользователя
         await updateUserProductStatistics(order.userId, order.orderItems);
       }
@@ -1017,11 +1444,9 @@ app.put('/api/orders/:id', async (req, res) => {
 
       // Управляем остатками товаров при изменении заказа
       await updateStockForOrderChange(order.orderItems, updateData.orderItems);
-    }
-    
-    // Если передан guestId, обновляем связь с пользователем
-    if (updateData.guestId) {
-      order.userId = updateData.guestId;
+      await order.update({ orderItems: updateData.orderItems, totalAmount: updateData.totalAmount, status: updateData.status, paymentMethod: updateData.paymentMethod, comment: updateData.comment, closedAt: updateData.closedAt });
+      // Пересчитываем скидки/итог
+      await recalcOrderTotals(order);
     }
 
     // Обновляем заказ с принудительным сохранением JSON полей
@@ -1053,74 +1478,19 @@ app.put('/api/orders/:id/remove-item', async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { itemIndex } = req.body;
-    
+
     const order = await Order.findByPk(id);
-    if (!order) {
-      return res.status(404).json({ message: 'Заказ не найден' });
-    }
+    if (!order) return res.status(404).json({ message: 'Заказ не найден' });
+    if (order.status !== 'active') return res.status(400).json({ message: 'Можно удалять позиции только в активном заказе' });
 
-    if (order.status !== 'active') {
-      return res.status(400).json({ message: 'Можно удалять позиции только из активных заказов' });
-    }
+    const items = Array.isArray(order.orderItems) ? [...order.orderItems] : [];
+    if (itemIndex < 0 || itemIndex >= items.length) return res.status(400).json({ message: 'Некорректный индекс позиции' });
 
-    const orderItems = [...order.orderItems];
-    if (itemIndex < 0 || itemIndex >= orderItems.length) {
-      return res.status(400).json({ message: 'Неверный индекс позиции' });
-    }
+    const removed = items[itemIndex];
 
-    // Удаляем позицию
-    const removedItem = orderItems.splice(itemIndex, 1)[0];
-    
-    // Возвращаем остатки удаленной позиции
-    await updateStockForOrderChange([removedItem], []);
-    
-    // Пересчитываем общую сумму
-    const newTotalAmount = orderItems.reduce((sum, item) => 
-      sum + (Number(item.price) * item.quantity), 0
-    );
-
-    // Если все позиции удалены, отменяем заказ
-    if (orderItems.length === 0) {
-      await order.update({
-        status: 'cancelled',
-        comment: 'Заказ отменен - все позиции удалены',
-        closedAt: new Date(),
-        orderItems: [],
-        totalAmount: 0
-      });
-    } else {
-      await order.update({
-        orderItems,
-        totalAmount: newTotalAmount
-      });
-    }
-
-    res.json(order);
-  } catch (error) {
-    console.error('Error fetching products:', error);
-    res.status(500).json({ message: error.message });
-  }
-});
-
-// Добавление товара к заказу
-app.put('/api/orders/:id/add-item', async (req, res) => {
-  try {
-    const id = parseInt(req.params.id);
-    const { productId, quantity = 1 } = req.body;
-    
-    const order = await Order.findByPk(id);
-    if (!order) {
-      return res.status(404).json({ message: 'Заказ не найден' });
-    }
-
-    if (order.status !== 'active') {
-      return res.status(400).json({ message: 'Можно добавлять позиции только к активным заказам' });
-    }
-
-    // Получаем информацию о товаре
-    const product = await Product.findByPk(productId, {
+    // Возвращаем товар на склад
+    const product = await Product.findByPk(removed.productId, {
       include: [
-        { model: Category, as: 'category' },
         {
           model: ProductIngredient,
           as: 'ingredients',
@@ -1128,115 +1498,100 @@ app.put('/api/orders/:id/add-item', async (req, res) => {
         }
       ]
     });
-    
-    if (!product) {
-      return res.status(404).json({ message: 'Товар не найден' });
-    }
-
-    if (!product.isActive) {
-      return res.status(400).json({ message: 'Товар неактивен' });
-    }
-
-    // Проверяем доступность товара
-    if (product.isComposite) {
-      // Для составных товаров проверяем доступные порции
-      const availablePortions = calculateAvailablePortions(product.ingredients);
-      if (availablePortions < quantity) {
-        return res.status(400).json({ 
-          message: `Недостаточно ингредиентов. Доступно порций: ${availablePortions}` 
-        });
-      }
-    } else {
-      // Для обычных товаров проверяем остатки
-      if (product.stock < quantity * product.unitSize) {
-        return res.status(400).json({ 
-          message: `Недостаточно товара на складе. Доступно: ${product.stock} ${product.unit}` 
-        });
+    if (product) {
+      if (product.isComposite && product.ingredients && Array.isArray(product.ingredients)) {
+        for (const ingredient of product.ingredients) {
+          const qty = Number(removed.quantity) * Number(ingredient.quantity);
+          await ingredient.ingredientProduct.update({ stock: parseFloat(ingredient.ingredientProduct.stock) + qty });
+        }
+      } else {
+        const qty = Number(removed.quantity) * Number(product.unitSize || 1);
+        await product.update({ stock: parseFloat(product.stock) + qty });
       }
     }
 
-    const orderItems = [...order.orderItems];
-    
-    // Проверяем, есть ли уже такой товар в заказе
-    const existingItemIndex = orderItems.findIndex(item => {
-      console.log('Comparing:', item.productId, 'with', productId, 'types:', typeof item.productId, typeof productId);
-      return Number(item.productId) === Number(productId);
-    });
-    
-    console.log('Adding item to order:', {
-      orderId: order.id,
-      productId,
-      quantity,
-      existingItemIndex,
-      currentItems: orderItems
-    });
-    
-    if (existingItemIndex >= 0) {
-      // Увеличиваем количество существующей позиции
-      const currentQuantity = Number(orderItems[existingItemIndex].quantity);
-      orderItems[existingItemIndex].quantity = currentQuantity + Number(quantity);
-      console.log('Updated existing item quantity:', orderItems[existingItemIndex].quantity);
+    // Удаляем позицию и пересчитываем суммы
+    items.splice(itemIndex, 1);
+    const newTotal = items.reduce((s, it) => s + (Number(it.price) * Number(it.quantity)), 0);
+    await order.update({ orderItems: items, totalAmount: newTotal }, { fields: ['orderItems', 'totalAmount'] });
+    await recalcOrderTotals(order);
+    order.changed('orderItems', true);
+    await order.save();
+    res.json(order);
+  } catch (error) {
+    console.error('Error removing item from order:', error);
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Добавление позиции в активный заказ
+app.put('/api/orders/:id/add-item', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { productId, quantity = 1 } = req.body;
+
+    const order = await Order.findByPk(id);
+    if (!order) return res.status(404).json({ message: 'Заказ не найден' });
+    if (order.status !== 'active') return res.status(400).json({ message: 'Можно добавлять позиции только в активный заказ' });
+
+    const product = await Product.findByPk(productId);
+    if (!product) return res.status(404).json({ message: 'Товар не найден' });
+
+    const items = Array.isArray(order.orderItems) ? [...order.orderItems] : [];
+    const idx = items.findIndex(it => Number(it.productId) === Number(productId));
+    if (idx >= 0) {
+      items[idx].quantity = Number(items[idx].quantity) + Number(quantity);
     } else {
-      // Добавляем новую позицию
-      orderItems.push({
-        productId: product.id,
-        productName: product.name,
-        quantity: Number(quantity),
-        price: Number(product.price)
-      });
-      console.log('Added new item to order');
+      items.push({ productId: product.id, productName: product.name, quantity: Number(quantity), price: Number(product.price) });
     }
 
-    // Списываем товары
+    // Списываем со склада
     if (product.isComposite) {
-      // Списываем ингредиенты для составного товара
       const ingredients = await ProductIngredient.findAll({
         where: { compositeProductId: product.id },
         include: [{ model: Product, as: 'ingredientProduct' }]
       });
-
-      if (Array.isArray(ingredients)) {
-        for (const ingredient of ingredients) {
-          const requiredAmount = ingredient.quantity * quantity;
-          await ingredient.ingredientProduct.update({
-            stock: ingredient.ingredientProduct.stock - requiredAmount
-          });
-        }
+      for (const ing of ingredients) {
+        const qty = Number(quantity) * Number(ing.quantity);
+        await ing.ingredientProduct.update({ stock: parseFloat(ing.ingredientProduct.stock) - qty });
       }
     } else {
-      // Списываем обычный товар
-      await product.update({
-        stock: product.stock - (quantity * product.unitSize)
-      });
+      const qty = Number(quantity) * Number(product.unitSize || 1);
+      await product.update({ stock: parseFloat(product.stock) - qty });
     }
 
-    // Пересчитываем общую сумму
-    const newTotalAmount = orderItems.reduce((sum, item) => 
-      sum + (Number(item.price) * item.quantity), 0
-    );
-
-    // Обновляем заказ с принудительным обновлением JSON поля
-    await order.update({
-      orderItems: orderItems,
-      totalAmount: newTotalAmount
-    }, {
-      fields: ['orderItems', 'totalAmount']
-    });
-    
-    // Принудительно помечаем поле как измененное
+    const newTotal = items.reduce((s, it) => s + (Number(it.price) * Number(it.quantity)), 0);
+    await order.update({ orderItems: items, totalAmount: newTotal }, { fields: ['orderItems', 'totalAmount'] });
+    await recalcOrderTotals(order);
     order.changed('orderItems', true);
     await order.save();
-    
-    console.log('Order updated successfully:', {
-      orderId: order.id,
-      newOrderItems: orderItems,
-      newTotalAmount: newTotalAmount
-    });
-
+    await recalcOrderTotals(order);
     res.json(order);
   } catch (error) {
-    console.error('Error fetching products:', error);
+    console.error('Error adding item to order:', error);
     res.status(500).json({ message: error.message });
+  }
+});
+
+// Установка ручной скидки на активный заказ
+app.put('/api/orders/:id/discount', async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    const { discountPercent } = req.body;
+    const order = await Order.findByPk(id);
+    if (!order) return res.status(404).json({ message: 'Заказ не найден' });
+    if (order.status !== 'active') return res.status(400).json({ message: 'Скидка доступна только для активного заказа' });
+
+    let p = Number(discountPercent);
+    if (isNaN(p)) p = 0;
+    p = Math.max(0, Math.min(100, p));
+
+    await order.update({ discountPercent: p }, { fields: ['discountPercent'] });
+    await recalcOrderTotals(order);
+    return res.json(order);
+  } catch (error) {
+    console.error('Error setting order discount:', error);
+    return res.status(500).json({ message: 'Не удалось применить скидку' });
   }
 });
 
