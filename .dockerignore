@@ -1,0 +1,14 @@
+# Root dockerignore
+.git
+.gitignore
+*.log
+node_modules
+**/node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.DS_Store
+.env
+server/.env
+client/.env
+client/.env.*
